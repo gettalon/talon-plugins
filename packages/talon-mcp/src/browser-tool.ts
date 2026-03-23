@@ -67,13 +67,14 @@ export async function executeBrowserTool(
     const resultObj = result as Record<string, unknown>;
 
     // Handle screenshot: return as image
-    if (action === "screenshot" && resultObj?.data && typeof resultObj.data === "string") {
-      const data = resultObj.data as string;
-      if (data.startsWith("data:image/")) {
-        const base64 = data.replace(/^data:image\/\w+;base64,/, "");
-        return { content: [{ type: "image", data: base64, mimeType: "image/png" }] };
+    if (action === "screenshot") {
+      const b64 = (resultObj?.screenshot_base64 || resultObj?.data) as string | undefined;
+      if (b64 && typeof b64 === "string") {
+        const clean = b64.startsWith("data:image/")
+          ? b64.replace(/^data:image\/\w+;base64,/, "")
+          : b64;
+        return { content: [{ type: "image", data: clean, mimeType: "image/png" }] };
       }
-      return { content: [{ type: "image", data, mimeType: "image/png" }] };
     }
 
     // Handle errors from extension
