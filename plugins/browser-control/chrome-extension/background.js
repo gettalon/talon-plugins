@@ -492,8 +492,9 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 function broadcastToPopup(msg) {
+  console.log(`[Talon] broadcastToPopup (${popupPorts.length} ports):`, msg.type, JSON.stringify(msg).substring(0, 200));
   for (const port of popupPorts) {
-    try { port.postMessage(msg); } catch {}
+    try { port.postMessage(msg); } catch (e) { console.error('[Talon] port.postMessage failed:', e); }
   }
 }
 
@@ -506,9 +507,12 @@ async function handleMessage(data) {
     return;
   }
 
+  console.log("[Talon] handleMessage:", msg.type, "connectedToRc:", connectedToRc, "hasSeq:", msg.seq !== undefined, JSON.stringify(msg).substring(0, 300));
+
   // ── RC server envelope: unwrap {seq, payload} ──
   if (connectedToRc && msg.seq !== undefined && msg.payload) {
     msg = msg.payload;
+    console.log("[Talon] Unwrapped envelope, inner type:", msg.type);
   }
 
   // ── Store mesh credentials if provided (for relay discovery) ──

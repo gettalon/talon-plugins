@@ -30,7 +30,7 @@ export class BrowserBridgeServer {
                 return;
             }
             this.client = ws;
-            process.stderr.write(`[talon-mcp] Chrome extension connected\n`);
+            process.stderr.write(`[talon-mcp] Chrome extension connected (readyState=${ws.readyState})\n`);
             ws.on("message", (data) => {
                 try {
                     const msg = JSON.parse(data.toString());
@@ -236,36 +236,27 @@ export class BrowserBridgeServer {
             process.stderr.write("[talon-mcp] Cannot send reply: no browser connected\n");
             return;
         }
-        process.stderr.write(`[talon-mcp] Sending reply to chat_id=${chatId}: ${text.substring(0, 50)}...\n`);
+        process.stderr.write(`[talon-mcp] Sending reply to chat_id=${chatId}, client=${this.client ? 'connected' : 'null'}, readyState=${this.client?.readyState}\n`);
+        process.stderr.write(`[talon-mcp] Reply text: ${text.substring(0, 100)}\n`);
         // Use RC stream format with seq envelope (extension expects this when connectedToRc=true)
         let seq = Date.now();
-        // Turn started
-        this.client.send(JSON.stringify({
-            seq: seq++,
-            payload: {
-                type: "stream",
-                conversation_id: chatId,
-                event: { type: "turn_started" },
-            },
-        }));
-        // Text delta
-        this.client.send(JSON.stringify({
-            seq: seq++,
-            payload: {
-                type: "stream",
-                conversation_id: chatId,
-                event: { type: "text_delta", text },
-            },
-        }));
-        // Stream end
-        this.client.send(JSON.stringify({
-            seq: seq++,
-            payload: {
-                type: "stream",
-                conversation_id: chatId,
-                event: { type: "stream_end", fullText: text },
-            },
-        }));
+        try {
+            // Turn started
+            const msg1 = JSON.stringify({ seq: seq++, payload: { type: "stream", conversation_id: chatId, event: { type: "turn_started" } } });
+            this.client.send(msg1);
+            process.stderr.write(`[talon-mcp] Sent turn_started\n`);
+            // Text delta
+            const msg2 = JSON.stringify({ seq: seq++, payload: { type: "stream", conversation_id: chatId, event: { type: "text_delta", text } } });
+            this.client.send(msg2);
+            process.stderr.write(`[talon-mcp] Sent text_delta\n`);
+            // Stream end
+            const msg3 = JSON.stringify({ seq: seq++, payload: { type: "stream", conversation_id: chatId, event: { type: "stream_end", fullText: text } } });
+            this.client.send(msg3);
+            process.stderr.write(`[talon-mcp] Sent stream_end\n`);
+        }
+        catch (err) {
+            process.stderr.write(`[talon-mcp] Send error: ${err}\n`);
+        }
     }
     get isConnected() {
         return this.client !== null && this.client.readyState === WebSocket.OPEN;
