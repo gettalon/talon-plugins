@@ -1,0 +1,10 @@
+{
+  "name": "browser-control",
+  "description": "Control Chrome browser via CDP. Navigate, click, fill forms, take screenshots, run JavaScript.",
+  "version": "1.0.0",
+  "author": { "name": "Talon" },
+  "homepage": "https://github.com/gettalon/claude-plugins",
+  "repository": "https://github.com/gettalon/claude-plugins",
+  "license": "MIT",
+  "keywords": ["browser", "chrome", "cdp", "automation"]
+}

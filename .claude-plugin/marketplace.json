@@ -1,0 +1,21 @@
+{
+  "name": "gettalon-claude-plugins",
+  "owner": {
+    "name": "Talon",
+    "email": "hunter.h9898@gmail.com"
+  },
+  "metadata": {
+    "description": "Official Talon plugins for Claude Code — browser control, automation, and more"
+  },
+  "plugins": [
+    {
+      "name": "browser-control",
+      "source": "./plugins/browser-control",
+      "description": "Full browser control via Chrome DevTools Protocol. Navigate, click, fill forms, screenshot, run JS.",
+      "version": "1.0.0",
+      "author": { "name": "Talon" },
+      "category": "browser",
+      "keywords": ["browser", "chrome", "cdp", "automation", "web"]
+    }
+  ]
+}
