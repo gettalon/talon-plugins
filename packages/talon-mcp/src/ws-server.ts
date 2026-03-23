@@ -18,9 +18,12 @@ interface PendingRequest {
   timer: ReturnType<typeof setTimeout>;
 }
 
+type ChatHandler = (chatId: string, text: string, context?: Record<string, string>) => void;
+
 export class BrowserBridgeServer {
   private client: WebSocket | null = null;
   private pending = new Map<string, PendingRequest>();
+  private chatHandler: ChatHandler | null = null;
   private authToken: string;
   private port: number;
 
@@ -46,7 +49,9 @@ export class BrowserBridgeServer {
 
       ws.on("message", (data) => {
         try {
-          const msg = JSON.parse(data.toString()) as BrowserCommandResponse;
+          const msg = JSON.parse(data.toString());
+
+          // Browser command response
           if (msg.type === "browser_command_response" && msg.request_id) {
             const p = this.pending.get(msg.request_id);
             if (p) {
@@ -54,6 +59,18 @@ export class BrowserBridgeServer {
               this.pending.delete(msg.request_id);
               p.resolve(msg.result);
             }
+            return;
+          }
+
+          // Chat message from extension
+          if (msg.type === "chat_message" && msg.text && this.chatHandler) {
+            const chatId = msg.conversation_id || `chat-${Date.now()}`;
+            const context: Record<string, string> = {};
+            if (msg.context?.url) context.url = msg.context.url;
+            if (msg.context?.title) context.title = msg.context.title;
+            if (msg.context?.selectedText) context.selectedText = msg.context.selectedText;
+            this.chatHandler(chatId, msg.text, context);
+            return;
           }
         } catch {
           // ignore malformed messages
@@ -222,6 +239,22 @@ export class BrowserBridgeServer {
       this.pending.set(requestId, { resolve, reject, timer });
       this.client!.send(JSON.stringify(cmd));
     });
+  }
+
+  onChatMessage(handler: ChatHandler): void {
+    this.chatHandler = handler;
+  }
+
+  sendChatReply(chatId: string, text: string): void {
+    if (!this.client || this.client.readyState !== WebSocket.OPEN) {
+      process.stderr.write("[talon-mcp] Cannot send reply: no browser connected\n");
+      return;
+    }
+    this.client.send(JSON.stringify({
+      type: "stream",
+      conversation_id: chatId,
+      event: { type: "stream-chunk", content: text, done: true },
+    }));
   }
 
   get isConnected(): boolean {

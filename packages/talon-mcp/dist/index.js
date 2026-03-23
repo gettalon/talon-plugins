@@ -1,57 +1,81 @@
 #!/usr/bin/env node
-import { createInterface } from "node:readline";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { BrowserBridgeServer } from "./ws-server.js";
-import { McpHandler } from "./mcp-handler.js";
+import { BROWSER_TOOL, executeBrowserTool } from "./browser-tool.js";
 const PORT = parseInt(process.env.TALON_MCP_PORT ?? "21567", 10);
 async function main() {
-    const server = new BrowserBridgeServer(PORT);
-    await server.start();
-    const handler = new McpHandler(server);
-    const rl = createInterface({ input: process.stdin });
-    rl.on("line", async (line) => {
-        if (!line.trim())
-            return;
-        let req;
-        try {
-            req = JSON.parse(line);
-        }
-        catch {
-            const err = { jsonrpc: "2.0", id: 0, error: { code: -32700, message: "Parse error" } };
-            process.stdout.write(JSON.stringify(err) + "\n");
-            return;
-        }
-        try {
-            const response = await handler.handle(req);
-            if (response) {
-                process.stdout.write(JSON.stringify(response) + "\n");
-            }
-        }
-        catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            process.stderr.write(`[talon-mcp] Error handling ${req.method}: ${message}\n`);
-            if (req.id !== undefined) {
-                const errResp = { jsonrpc: "2.0", id: req.id, error: { code: -32603, message } };
-                process.stdout.write(JSON.stringify(errResp) + "\n");
-            }
-        }
+    // Start the WebSocket/HTTP server for Chrome extension
+    const bridge = new BrowserBridgeServer(PORT);
+    await bridge.start();
+    // Create MCP server with both tools AND channel capabilities
+    const mcp = new Server({ name: "talon-browser", version: "1.0.0" }, {
+        capabilities: {
+            experimental: { "claude/channel": {} },
+            tools: {},
+        },
+        instructions: 'Messages from the Chrome browser extension arrive as <channel source="talon-browser" chat_id="..." user="browser">. ' +
+            "The user is chatting from a Chrome side panel. Reply with the reply tool, passing chat_id back. " +
+            "You also have browser_control tools to navigate, click, fill forms, take screenshots, and more in their Chrome browser.",
     });
+    // Register browser control + reply tools
+    mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
+        tools: [
+            BROWSER_TOOL,
+            {
+                name: "reply",
+                description: "Send a message back to the Chrome extension chat panel",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        chat_id: { type: "string", description: "The chat_id from the channel tag" },
+                        text: { type: "string", description: "The message to send" },
+                    },
+                    required: ["chat_id", "text"],
+                },
+            },
+        ],
+    }));
+    // Handle tool calls
+    mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
+        const { name, arguments: args } = req.params;
+        if (name === "browser_control") {
+            return await executeBrowserTool(bridge, (args ?? {}));
+        }
+        if (name === "reply") {
+            const { chat_id, text } = args;
+            bridge.sendChatReply(chat_id, text);
+            return { content: [{ type: "text", text: "sent" }] };
+        }
+        throw new Error(`Unknown tool: ${name}`);
+    });
+    // Listen for chat messages from Chrome extension and forward as channel notifications
+    bridge.onChatMessage(async (chatId, text, context) => {
+        const meta = {
+            chat_id: chatId,
+            user: "browser",
+        };
+        if (context?.url)
+            meta.url = context.url;
+        if (context?.title)
+            meta.title = context.title;
+        await mcp.notification({
+            method: "notifications/claude/channel",
+            params: { content: text, meta },
+        });
+    });
+    // Connect MCP over stdio
+    const transport = new StdioServerTransport();
+    await mcp.connect(transport);
+    process.stderr.write(`[talon-mcp] MCP server ready (port ${PORT})\n`);
+    // Graceful shutdown
     const shutdown = () => {
-        server.cleanupDiscoveryFiles();
+        bridge.cleanupDiscoveryFiles();
         process.exit(0);
     };
-    rl.on("close", () => {
-        process.stderr.write("[talon-mcp] stdin closed, shutting down\n");
-        shutdown();
-    });
-    process.on("SIGTERM", () => {
-        process.stderr.write("[talon-mcp] SIGTERM received, shutting down\n");
-        shutdown();
-    });
-    process.on("SIGINT", () => {
-        process.stderr.write("[talon-mcp] SIGINT received, shutting down\n");
-        shutdown();
-    });
-    process.stderr.write(`[talon-mcp] MCP server ready (port ${PORT})\n`);
+    process.on("SIGTERM", shutdown);
+    process.on("SIGINT", shutdown);
 }
 main().catch((err) => {
     process.stderr.write(`[talon-mcp] Fatal: ${err}\n`);

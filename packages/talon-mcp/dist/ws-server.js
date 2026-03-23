@@ -12,6 +12,7 @@ const TALON_DIR = join(homedir(), ".talon");
 export class BrowserBridgeServer {
     client = null;
     pending = new Map();
+    chatHandler = null;
     authToken;
     port;
     constructor(port) {
@@ -33,6 +34,7 @@ export class BrowserBridgeServer {
             ws.on("message", (data) => {
                 try {
                     const msg = JSON.parse(data.toString());
+                    // Browser command response
                     if (msg.type === "browser_command_response" && msg.request_id) {
                         const p = this.pending.get(msg.request_id);
                         if (p) {
@@ -40,6 +42,20 @@ export class BrowserBridgeServer {
                             this.pending.delete(msg.request_id);
                             p.resolve(msg.result);
                         }
+                        return;
+                    }
+                    // Chat message from extension
+                    if (msg.type === "chat_message" && msg.text && this.chatHandler) {
+                        const chatId = msg.conversation_id || `chat-${Date.now()}`;
+                        const context = {};
+                        if (msg.context?.url)
+                            context.url = msg.context.url;
+                        if (msg.context?.title)
+                            context.title = msg.context.title;
+                        if (msg.context?.selectedText)
+                            context.selectedText = msg.context.selectedText;
+                        this.chatHandler(chatId, msg.text, context);
+                        return;
                     }
                 }
                 catch {
@@ -196,6 +212,20 @@ export class BrowserBridgeServer {
             this.pending.set(requestId, { resolve, reject, timer });
             this.client.send(JSON.stringify(cmd));
         });
+    }
+    onChatMessage(handler) {
+        this.chatHandler = handler;
+    }
+    sendChatReply(chatId, text) {
+        if (!this.client || this.client.readyState !== WebSocket.OPEN) {
+            process.stderr.write("[talon-mcp] Cannot send reply: no browser connected\n");
+            return;
+        }
+        this.client.send(JSON.stringify({
+            type: "stream",
+            conversation_id: chatId,
+            event: { type: "stream-chunk", content: text, done: true },
+        }));
     }
     get isConnected() {
         return this.client !== null && this.client.readyState === WebSocket.OPEN;
