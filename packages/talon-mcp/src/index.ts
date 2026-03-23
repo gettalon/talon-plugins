@@ -42,19 +42,24 @@ async function main(): Promise<void> {
     }
   });
 
+  const shutdown = () => {
+    server.cleanupDiscoveryFiles();
+    process.exit(0);
+  };
+
   rl.on("close", () => {
     process.stderr.write("[talon-mcp] stdin closed, shutting down\n");
-    process.exit(0);
+    shutdown();
   });
 
   process.on("SIGTERM", () => {
     process.stderr.write("[talon-mcp] SIGTERM received, shutting down\n");
-    process.exit(0);
+    shutdown();
   });
 
   process.on("SIGINT", () => {
     process.stderr.write("[talon-mcp] SIGINT received, shutting down\n");
-    process.exit(0);
+    shutdown();
   });
 
   process.stderr.write(`[talon-mcp] MCP server ready (port ${PORT})\n`);

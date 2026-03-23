@@ -1,10 +1,14 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { randomUUID } from "node:crypto";
+import { mkdirSync, writeFileSync, unlinkSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
 import type { BrowserCommand, BrowserCommandResponse } from "./types.js";
 
 const DEFAULT_PORT = 21567;
 const COMMAND_TIMEOUT_MS = 30_000;
+const TALON_DIR = join(homedir(), ".talon");
 
 interface PendingRequest {
   resolve: (value: BrowserCommandResponse["result"]) => void;
@@ -68,10 +72,31 @@ export class BrowserBridgeServer {
 
     return new Promise((resolve) => {
       httpServer.listen(this.port, () => {
+        this.writeDiscoveryFiles();
         process.stderr.write(`[talon-mcp] Server listening on port ${this.port}\n`);
         resolve();
       });
     });
+  }
+
+  private writeDiscoveryFiles(): void {
+    try {
+      mkdirSync(TALON_DIR, { recursive: true });
+      writeFileSync(join(TALON_DIR, "rc_port"), String(this.port));
+      writeFileSync(join(TALON_DIR, "browser_bridge_token"), this.authToken);
+      process.stderr.write(`[talon-mcp] Discovery files written to ${TALON_DIR}\n`);
+    } catch (err) {
+      process.stderr.write(`[talon-mcp] Warning: could not write discovery files: ${err}\n`);
+    }
+  }
+
+  cleanupDiscoveryFiles(): void {
+    try {
+      unlinkSync(join(TALON_DIR, "rc_port"));
+      unlinkSync(join(TALON_DIR, "browser_bridge_token"));
+    } catch {
+      // ignore
+    }
   }
 
   private handleHttp(req: IncomingMessage, res: ServerResponse): void {

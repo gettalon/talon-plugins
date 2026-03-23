@@ -5,6 +5,8 @@ export declare class BrowserBridgeServer {
     private port;
     constructor(port?: number);
     start(): Promise<void>;
+    private writeDiscoveryFiles;
+    cleanupDiscoveryFiles(): void;
     private handleHttp;
     sendCommand(action: string, params: Record<string, unknown>): Promise<unknown>;
     get isConnected(): boolean;
