@@ -1,3 +1,6 @@
+import sharp from "sharp";
+const MAX_WIDTH = 1280;
+const JPEG_QUALITY = 60;
 export const BROWSER_TOOL = {
     name: "browser_control",
     description: "Control a Chrome browser via DevTools Protocol. " +
@@ -47,6 +50,17 @@ export const BROWSER_TOOL = {
         required: ["action"],
     },
 };
+async function compressScreenshot(base64Data) {
+    const buf = Buffer.from(base64Data, "base64");
+    const compressed = await sharp(buf)
+        .resize({ width: MAX_WIDTH, withoutEnlargement: true })
+        .jpeg({ quality: JPEG_QUALITY })
+        .toBuffer();
+    return {
+        data: compressed.toString("base64"),
+        mimeType: "image/jpeg",
+    };
+}
 export async function executeBrowserTool(server, args) {
     const action = args.action;
     if (!action) {
@@ -54,23 +68,17 @@ export async function executeBrowserTool(server, args) {
     }
     try {
         const { action: _, ...params } = args;
-        // Default screenshot to jpeg quality 60 for smaller size
-        if (action === "screenshot" && !params.format) {
-            params.format = "jpeg";
-            if (!params.quality)
-                params.quality = 60;
-        }
         const result = await server.sendCommand(action, params);
         const resultObj = result;
-        // Handle screenshot: return as image
+        // Handle screenshot: compress and return as image
         if (action === "screenshot") {
             const b64 = (resultObj?.screenshot_base64 || resultObj?.data);
             if (b64 && typeof b64 === "string") {
                 const clean = b64.startsWith("data:image/")
                     ? b64.replace(/^data:image\/\w+;base64,/, "")
                     : b64;
-                const mime = params.format === "jpeg" ? "image/jpeg" : "image/png";
-                return { content: [{ type: "image", data: clean, mimeType: mime }] };
+                const { data, mimeType } = await compressScreenshot(clean);
+                return { content: [{ type: "image", data, mimeType }] };
             }
         }
         // Handle errors from extension

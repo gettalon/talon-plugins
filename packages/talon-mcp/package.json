@@ -14,10 +14,12 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "sharp": "^0.34.5",
     "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/sharp": "^0.31.1",
     "@types/ws": "^8.5.0",
     "typescript": "^5.5.0"
   },
