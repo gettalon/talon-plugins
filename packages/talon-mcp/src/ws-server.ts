@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, writeFileSync, readFileSync, unlinkSync, existsSync, readdirSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, unlinkSync, existsSync, readdirSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, platform } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -70,10 +70,13 @@ export class BrowserBridgeServer {
             this.chatHandler(chatId, text, {});
             // Send response back to extension so it knows message was received
             if (this.client && msg.id) {
-              this.client.send(JSON.stringify({
-                type: "response",
-                id: msg.id,
-                result: { ok: true },
+              this.wsSend(JSON.stringify({
+                seq: this.seqCounter++,
+                payload: {
+                  type: "response",
+                  id: msg.id,
+                  result: { ok: true },
+                },
               }));
             }
             return;
@@ -254,12 +257,24 @@ export class BrowserBridgeServer {
       }, COMMAND_TIMEOUT_MS);
 
       this.pending.set(requestId, { resolve, reject, timer });
-      this.client!.send(JSON.stringify(cmd));
+      // Wrap in seq envelope so extension doesn't disconnect
+      this.wsSend(JSON.stringify({
+        seq: this.seqCounter++,
+        payload: cmd,
+      }));
     });
   }
 
   onChatMessage(handler: ChatHandler): void {
     this.chatHandler = handler;
+  }
+
+  private wsSend(msg: string): void {
+    if (!this.client || this.client.readyState !== WebSocket.OPEN) return;
+    const logLine = `[${new Date().toISOString()}] WS SEND: ${msg.substring(0, 500)}\n`;
+    process.stderr.write(logLine);
+    try { appendFileSync(join(TALON_DIR, "mcp-ws.log"), logLine); } catch {}
+    this.client.send(msg);
   }
 
   sendChatReply(chatId: string, text: string): void {
@@ -268,27 +283,16 @@ export class BrowserBridgeServer {
       return;
     }
 
-    process.stderr.write(`[talon-mcp] Sending reply to chat_id=${chatId}, client=${this.client ? 'connected' : 'null'}, readyState=${this.client?.readyState}\n`);
-    process.stderr.write(`[talon-mcp] Reply text: ${text.substring(0, 100)}\n`);
+    process.stderr.write(`[talon-mcp] sendChatReply chatId=${chatId} text=${text.substring(0, 100)}\n`);
 
     // Use RC stream format with seq envelope (extension expects this when connectedToRc=true)
     let seq = Date.now();
 
     try {
       // Turn started
-      const msg1 = JSON.stringify({ seq: seq++, payload: { type: "stream", conversation_id: chatId, event: { type: "turn_started" } } });
-      this.client.send(msg1);
-      process.stderr.write(`[talon-mcp] Sent turn_started\n`);
-
-      // Text delta
-      const msg2 = JSON.stringify({ seq: seq++, payload: { type: "stream", conversation_id: chatId, event: { type: "text_delta", text } } });
-      this.client.send(msg2);
-      process.stderr.write(`[talon-mcp] Sent text_delta\n`);
-
-      // Stream end
-      const msg3 = JSON.stringify({ seq: seq++, payload: { type: "stream", conversation_id: chatId, event: { type: "stream_end", fullText: text } } });
-      this.client.send(msg3);
-      process.stderr.write(`[talon-mcp] Sent stream_end\n`);
+      this.wsSend(JSON.stringify({ seq: seq++, payload: { type: "stream", conversation_id: chatId, event: { type: "turn_started" } } }));
+      this.wsSend(JSON.stringify({ seq: seq++, payload: { type: "stream", conversation_id: chatId, event: { type: "text_delta", text } } }));
+      this.wsSend(JSON.stringify({ seq: seq++, payload: { type: "stream", conversation_id: chatId, event: { type: "stream_end", fullText: text } } }));
     } catch (err) {
       process.stderr.write(`[talon-mcp] Send error: ${err}\n`);
     }
@@ -303,8 +307,7 @@ export class BrowserBridgeServer {
 
   private sendEvent(event: Record<string, unknown>): void {
     if (!this.client || this.client.readyState !== WebSocket.OPEN) return;
-    // Send as RC event format (not stream) so it goes through handleRcStreamEvent
-    this.client.send(JSON.stringify({
+    this.wsSend(JSON.stringify({
       seq: this.seqCounter++,
       payload: {
         type: "event",

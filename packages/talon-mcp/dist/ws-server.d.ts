@@ -14,6 +14,7 @@ export declare class BrowserBridgeServer {
     private handleHttp;
     sendCommand(action: string, params: Record<string, unknown>): Promise<unknown>;
     onChatMessage(handler: ChatHandler): void;
+    private wsSend;
     sendChatReply(chatId: string, text: string): void;
     private seqCounter;
     private lastChatId;

@@ -129,6 +129,8 @@ export async function executeBrowserTool(
     // Normal result
     const text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
     const summary = text.length > 200 ? text.substring(0, 200) + "..." : text;
+    // Small delay to let extension finish processing browser_command_response
+    await new Promise(r => setTimeout(r, 100));
     server.sendChatReply("mcp", `🔧 ${action}: ${summary}`);
     return { content: [{ type: "text", text }] };
   } catch (err) {
