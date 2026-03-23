@@ -16,6 +16,8 @@ export declare class BrowserBridgeServer {
     onChatMessage(handler: ChatHandler): void;
     sendChatReply(chatId: string, text: string): void;
     private seqCounter;
+    private lastChatId;
+    setLastChatId(chatId: string): void;
     private sendEvent;
     sendToolUse(callId: string, toolName: string, args: Record<string, unknown>): void;
     sendToolResult(callId: string, toolName: string, output: string, isError?: boolean): void;

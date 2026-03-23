@@ -65,6 +65,7 @@ export class BrowserBridgeServer {
           // RC protocol request (send_message) from extension
           if (msg.type === "request" && msg.method === "send_message" && msg.params && this.chatHandler) {
             const chatId = msg.params.conversation_id || `chat-${Date.now()}`;
+            this.lastChatId = chatId;
             const text = msg.params.message || "";
             this.chatHandler(chatId, text, {});
             // Send response back to extension so it knows message was received
@@ -294,12 +295,22 @@ export class BrowserBridgeServer {
   }
 
   private seqCounter = Date.now();
+  private lastChatId: string | null = null;
+
+  setLastChatId(chatId: string): void {
+    this.lastChatId = chatId;
+  }
 
   private sendEvent(event: Record<string, unknown>): void {
     if (!this.client || this.client.readyState !== WebSocket.OPEN) return;
+    // Send as RC event format (not stream) so it goes through handleRcStreamEvent
     this.client.send(JSON.stringify({
       seq: this.seqCounter++,
-      payload: { type: "stream", conversation_id: "mcp-tools", event },
+      payload: {
+        type: "event",
+        event: event.type as string,
+        data: event,
+      },
     }));
   }
 
