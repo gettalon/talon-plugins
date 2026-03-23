@@ -240,9 +240,52 @@ async function loadBridgeToken() {
   }
 }
 
+/** Try native messaging host first for reliable discovery via local files. */
+async function discoverViaNativeMessaging() {
+  return new Promise((resolve) => {
+    try {
+      const port = chrome.runtime.connectNative("com.gettalon.mcp");
+      const timeout = setTimeout(() => {
+        port.disconnect();
+        resolve(null);
+      }, 3000);
+
+      port.onMessage.addListener((msg) => {
+        clearTimeout(timeout);
+        port.disconnect();
+        if (msg.status === "ok" && msg.port && msg.token) {
+          console.log("[Talon] Native messaging discovered server on port", msg.port);
+          bridgeToken = msg.token;
+          try { chrome.storage.local.set({ rc_port: msg.port, bridge_token: msg.token }); } catch {}
+          resolve(msg.port);
+        } else {
+          resolve(null);
+        }
+      });
+
+      port.onDisconnect.addListener(() => {
+        clearTimeout(timeout);
+        if (chrome.runtime.lastError) {
+          console.log("[Talon] Native messaging not available:", chrome.runtime.lastError.message);
+        }
+        resolve(null);
+      });
+
+      port.postMessage({ type: "discover" });
+    } catch (e) {
+      console.log("[Talon] Native messaging failed:", e);
+      resolve(null);
+    }
+  });
+}
+
 /** Probe well-known ports to find a running Talon RC server and get a token. */
 async function discoverRcPort() {
-  // Try well-known ports first, then bridge port for port discovery
+  // Try native messaging first (reads ~/.talon/ files directly)
+  const nativePort = await discoverViaNativeMessaging();
+  if (nativePort) return nativePort;
+
+  // Fall back to HTTP port probing
   const portsToTry = [...RC_DISCOVERY_PORTS];
 
   // No extra discovery needed here — well-known ports cover the standard case.

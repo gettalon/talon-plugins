@@ -1,0 +1,9 @@
+{
+  "name": "com.gettalon.mcp",
+  "description": "Talon MCP native messaging host for browser discovery",
+  "path": "/Users/hunter/Documents/workspace/hunter/claude-plugins/packages/talon-mcp/native-host/talon-native-host.js",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://EXTENSION_ID_PLACEHOLDER/"
+  ]
+}
