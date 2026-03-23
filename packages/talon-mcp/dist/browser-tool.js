@@ -54,6 +54,12 @@ export async function executeBrowserTool(server, args) {
     }
     try {
         const { action: _, ...params } = args;
+        // Default screenshot to jpeg quality 60 for smaller size
+        if (action === "screenshot" && !params.format) {
+            params.format = "jpeg";
+            if (!params.quality)
+                params.quality = 60;
+        }
         const result = await server.sendCommand(action, params);
         const resultObj = result;
         // Handle screenshot: return as image
@@ -63,7 +69,8 @@ export async function executeBrowserTool(server, args) {
                 const clean = b64.startsWith("data:image/")
                     ? b64.replace(/^data:image\/\w+;base64,/, "")
                     : b64;
-                return { content: [{ type: "image", data: clean, mimeType: "image/png" }] };
+                const mime = params.format === "jpeg" ? "image/jpeg" : "image/png";
+                return { content: [{ type: "image", data: clean, mimeType: mime }] };
             }
         }
         // Handle errors from extension
