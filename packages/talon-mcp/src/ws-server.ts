@@ -250,10 +250,14 @@ export class BrowserBridgeServer {
       process.stderr.write("[talon-mcp] Cannot send reply: no browser connected\n");
       return;
     }
+    // Send as chat_stream_delta + chat_stream_end (bridge protocol format)
     this.client.send(JSON.stringify({
-      type: "stream",
-      conversation_id: chatId,
-      event: { type: "stream-chunk", content: text, done: true },
+      type: "chat_stream_delta",
+      text,
+    }));
+    this.client.send(JSON.stringify({
+      type: "chat_stream_end",
+      fullText: text,
     }));
   }
 
