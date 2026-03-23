@@ -236,12 +236,24 @@ export class BrowserBridgeServer {
             process.stderr.write("[talon-mcp] Cannot send reply: no browser connected\n");
             return;
         }
-        // Send as RC event format (what extension expects when connectedToRc=true)
+        // Send conversation ID first so extension knows which conversation
+        this.client.send(JSON.stringify({
+            type: "chat_conversation_id",
+            conversation_id: chatId,
+        }));
+        // Send turn started
+        this.client.send(JSON.stringify({
+            type: "event",
+            event: "turn_started",
+            data: { type: "turn_started" },
+        }));
+        // Send text delta
         this.client.send(JSON.stringify({
             type: "event",
             event: "text_delta",
             data: { type: "text_delta", text },
         }));
+        // Send stream end with full text
         this.client.send(JSON.stringify({
             type: "event",
             event: "stream_end",
