@@ -33,7 +33,6 @@ export function useExtensionPort() {
               const text = streamTextRef.current
               const blocks = [...streamBlocksRef.current]
               if (text || blocks.length) {
-                // Ensure text block exists
                 const hasText = blocks.some(b => b.type === 'text')
                 if (text && !hasText) blocks.unshift({ type: 'text', content: text })
                 else if (text && hasText) {
@@ -51,28 +50,7 @@ export function useExtensionPort() {
               s.setIsThinking(false)
               s.setThinkingText('')
               s.setStatusMsg(null)
-
-              // Mark any consumed message as done
-              const consumed = s.messageQueue.find(m => m.status === 'consumed')
-              if (consumed) s.markDone(consumed.id)
-
-              // Auto-send next queued message
-              const next = s.consumeNext()
-              if (next) {
-                s.addMessage({
-                  id: `u-${Date.now()}`, role: 'user', content: next.text,
-                  blocks: [{ type: 'text', content: next.text }],
-                  timestamp: Date.now(), pending: true,
-                })
-                streamTextRef.current = ''
-                streamBlocksRef.current = []
-                s.setIsStreaming(true)
-                try {
-                  chrome.runtime.sendMessage({ type: 'chat_send', text: next.text })
-                } catch {}
-              } else {
-                s.setIsStreaming(false)
-              }
+              s.setIsStreaming(false)
               break
             }
 

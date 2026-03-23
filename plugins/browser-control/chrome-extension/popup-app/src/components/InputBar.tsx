@@ -75,14 +75,7 @@ export function InputBar({ streamTextRef, streamBlocksRef }: {
     const msg = (text || input).trim()
     if (!msg) return
 
-    if (isStreaming) {
-      // Queue the message — will be sent when agent finishes current turn
-      enqueueMessage(msg)
-      setInput('')
-      if (inputRef.current) inputRef.current.style.height = 'auto'
-      return
-    }
-
+    // Always send directly — no queuing. Each message goes to the channel immediately.
     addMessage({
       id: `u-${Date.now()}`, role: 'user', content: msg,
       blocks: [{ type: 'text', content: msg }],
