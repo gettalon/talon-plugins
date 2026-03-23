@@ -1,9 +1,11 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, writeFileSync, unlinkSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, unlinkSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
+import { homedir, platform } from "node:os";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 import type { BrowserCommand, BrowserCommandResponse } from "./types.js";
 
 const DEFAULT_PORT = 21567;
@@ -88,6 +90,88 @@ export class BrowserBridgeServer {
     } catch (err) {
       process.stderr.write(`[talon-mcp] Warning: could not write discovery files: ${err}\n`);
     }
+    this.installNativeMessagingHost();
+  }
+
+  private installNativeMessagingHost(): void {
+    try {
+      // Determine native messaging hosts directory
+      const home = homedir();
+      let hostsDir: string;
+      if (platform() === "darwin") {
+        hostsDir = join(home, "Library", "Application Support", "Google", "Chrome", "NativeMessagingHosts");
+      } else if (platform() === "linux") {
+        hostsDir = join(home, ".config", "google-chrome", "NativeMessagingHosts");
+      } else {
+        // Windows: HKCU registry — skip auto-install
+        return;
+      }
+
+      mkdirSync(hostsDir, { recursive: true });
+
+      // Find the native host script path
+      const thisFile = fileURLToPath(import.meta.url);
+      const hostScript = join(dirname(thisFile), "..", "native-host", "talon-native-host.js");
+
+      if (!existsSync(hostScript)) {
+        process.stderr.write(`[talon-mcp] Native host script not found at ${hostScript}\n`);
+        return;
+      }
+
+      // Find installed extension ID by scanning Chrome extensions dir
+      const extId = this.findExtensionId();
+
+      const manifest = {
+        name: "com.gettalon.mcp",
+        description: "Talon MCP native messaging host for browser discovery",
+        path: hostScript,
+        type: "stdio",
+        allowed_origins: extId
+          ? [`chrome-extension://${extId}/`]
+          : ["chrome-extension://*/"], // allow any if ID unknown
+      };
+
+      const manifestPath = join(hostsDir, "com.gettalon.mcp.json");
+      writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+      process.stderr.write(`[talon-mcp] Native messaging host installed at ${manifestPath}\n`);
+    } catch (err) {
+      process.stderr.write(`[talon-mcp] Warning: could not install native messaging host: ${err}\n`);
+    }
+  }
+
+  private findExtensionId(): string | null {
+    // Try to find the Talon Browser Control extension ID from Chrome's Extensions dir
+    try {
+      const home = homedir();
+      let extDir: string;
+      if (platform() === "darwin") {
+        extDir = join(home, "Library", "Application Support", "Google", "Chrome", "Default", "Extensions");
+      } else {
+        extDir = join(home, ".config", "google-chrome", "Default", "Extensions");
+      }
+
+      if (!existsSync(extDir)) return null;
+
+      // Scan extension dirs for one containing our manifest name
+      for (const id of readdirSync(extDir)) {
+        try {
+          const versions = readdirSync(join(extDir, id));
+          for (const ver of versions) {
+            const mf = join(extDir, id, ver, "manifest.json");
+            if (existsSync(mf)) {
+              const raw = readFileSync(mf, "utf-8");
+              const content = JSON.parse(raw);
+              if (content.name === "Talon Browser Control") {
+                return id;
+              }
+            }
+          }
+        } catch {
+          continue;
+        }
+      }
+    } catch {}
+    return null;
   }
 
   cleanupDiscoveryFiles(): void {

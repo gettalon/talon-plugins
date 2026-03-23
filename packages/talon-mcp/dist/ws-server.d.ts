@@ -6,6 +6,8 @@ export declare class BrowserBridgeServer {
     constructor(port?: number);
     start(): Promise<void>;
     private writeDiscoveryFiles;
+    private installNativeMessagingHost;
+    private findExtensionId;
     cleanupDiscoveryFiles(): void;
     private handleHttp;
     sendCommand(action: string, params: Record<string, unknown>): Promise<unknown>;
