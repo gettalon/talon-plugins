@@ -62,7 +62,23 @@ export class BrowserBridgeServer {
             return;
           }
 
-          // Chat message from extension
+          // RC protocol request (send_message) from extension
+          if (msg.type === "request" && msg.method === "send_message" && msg.params && this.chatHandler) {
+            const chatId = msg.params.conversation_id || `chat-${Date.now()}`;
+            const text = msg.params.message || "";
+            this.chatHandler(chatId, text, {});
+            // Send response back to extension so it knows message was received
+            if (this.client && msg.id) {
+              this.client.send(JSON.stringify({
+                type: "response",
+                id: msg.id,
+                result: { ok: true },
+              }));
+            }
+            return;
+          }
+
+          // Bridge protocol chat message from extension (fallback)
           if (msg.type === "chat_message" && msg.text && this.chatHandler) {
             const chatId = msg.conversation_id || `chat-${Date.now()}`;
             const context: Record<string, string> = {};
@@ -250,14 +266,16 @@ export class BrowserBridgeServer {
       process.stderr.write("[talon-mcp] Cannot send reply: no browser connected\n");
       return;
     }
-    // Send as chat_stream_delta + chat_stream_end (bridge protocol format)
+    // Send as RC event format (what extension expects when connectedToRc=true)
     this.client.send(JSON.stringify({
-      type: "chat_stream_delta",
-      text,
+      type: "event",
+      event: "text_delta",
+      data: { type: "text_delta", text },
     }));
     this.client.send(JSON.stringify({
-      type: "chat_stream_end",
-      fullText: text,
+      type: "event",
+      event: "stream_end",
+      data: { type: "stream_end", fullText: text },
     }));
   }
 
