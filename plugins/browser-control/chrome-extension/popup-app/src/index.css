@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+/* Reset handled by Tailwind preflight */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #100e0c;
+  color: #f0ebe4;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollbar — thin & subtle */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+
+/* Streaming cursor blink */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* Textarea */
+textarea::placeholder { color: #6b6058 !important; }
+textarea:focus { outline: none !important; }
+
+/* Selection */
+::selection { background: rgba(232, 101, 74, 0.3); }
+
+/* iMessage send animation */
+@keyframes imessage-send {
+  0% { transform: scale(1.06, 0.94) translateY(20px); opacity: 0.7; }
+  40% { transform: scale(0.98, 1.02) translateY(-4px); opacity: 1; }
+  70% { transform: scale(1.01, 0.99) translateY(1px); }
+  100% { transform: scale(1, 1) translateY(0); }
+}
+.animate-send { animation: imessage-send 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+/* Bottom sheet slide up */
+@keyframes slideUp {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+.animate-slideUp { animation: slideUp 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+/* Smooth transitions */
+button { transition: all 0.15s ease; }
+button:active { transform: scale(0.96); }
