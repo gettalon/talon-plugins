@@ -79,10 +79,21 @@ export async function executeBrowserTool(server, args) {
     if (!action) {
         return { content: [{ type: "text", text: "Missing required parameter: action" }], isError: true };
     }
+    const callId = `bc-${Date.now()}`;
+    const { action: _, ...params } = args;
+    // Notify extension: tool started
+    server.sendToolUse(callId, `browser_control:${action}`, params);
+    const startTime = Date.now();
     try {
-        const { action: _, ...params } = args;
+        // Default screenshot to jpeg
+        if (action === "screenshot" && !params.format) {
+            params.format = "jpeg";
+            if (!params.quality)
+                params.quality = 60;
+        }
         const result = await server.sendCommand(action, params);
         const resultObj = result;
+        const elapsed = (Date.now() - startTime) / 1000;
         // Handle screenshot: compress and return as image
         if (action === "screenshot") {
             const b64 = (resultObj?.screenshot_base64 || resultObj?.data);
@@ -91,19 +102,25 @@ export async function executeBrowserTool(server, args) {
                     ? b64.replace(/^data:image\/\w+;base64,/, "")
                     : b64;
                 const { data, mimeType } = await compressScreenshot(clean);
+                server.sendToolResult(callId, `browser_control:${action}`, `Screenshot captured (${elapsed.toFixed(1)}s)`);
                 return { content: [{ type: "image", data, mimeType }] };
             }
         }
         // Handle errors from extension
         if (resultObj?.error) {
-            return { content: [{ type: "text", text: `Browser error: ${resultObj.error}` }], isError: true };
+            const errMsg = `Browser error: ${resultObj.error}`;
+            server.sendToolResult(callId, `browser_control:${action}`, errMsg, true);
+            return { content: [{ type: "text", text: errMsg }], isError: true };
         }
         // Normal result
         const text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+        const summary = text.length > 200 ? text.substring(0, 200) + "..." : text;
+        server.sendToolResult(callId, `browser_control:${action}`, summary);
         return { content: [{ type: "text", text }] };
     }
     catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        server.sendToolResult(callId, `browser_control:${action}`, message, true);
         return { content: [{ type: "text", text: message }], isError: true };
     }
 }

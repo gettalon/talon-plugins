@@ -293,6 +293,32 @@ export class BrowserBridgeServer {
     }
   }
 
+  private seqCounter = Date.now();
+
+  private sendEvent(event: Record<string, unknown>): void {
+    if (!this.client || this.client.readyState !== WebSocket.OPEN) return;
+    this.client.send(JSON.stringify({
+      seq: this.seqCounter++,
+      payload: { type: "stream", conversation_id: "mcp-tools", event },
+    }));
+  }
+
+  sendToolUse(callId: string, toolName: string, args: Record<string, unknown>): void {
+    this.sendEvent({ type: "tool_use", call_id: callId, tool_name: toolName, arguments: args });
+  }
+
+  sendToolResult(callId: string, toolName: string, output: string, isError = false): void {
+    this.sendEvent({ type: "tool_result", call_id: callId, tool_name: toolName, output, is_error: isError });
+  }
+
+  sendToolProgress(callId: string, toolName: string, elapsed: number): void {
+    this.sendEvent({ type: "tool_progress", tool_use_id: callId, tool_name: toolName, elapsed_secs: elapsed });
+  }
+
+  sendStatus(message: string): void {
+    this.sendEvent({ type: "status", message });
+  }
+
   get isConnected(): boolean {
     return this.client !== null && this.client.readyState === WebSocket.OPEN;
   }

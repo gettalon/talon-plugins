@@ -258,6 +258,27 @@ export class BrowserBridgeServer {
             process.stderr.write(`[talon-mcp] Send error: ${err}\n`);
         }
     }
+    seqCounter = Date.now();
+    sendEvent(event) {
+        if (!this.client || this.client.readyState !== WebSocket.OPEN)
+            return;
+        this.client.send(JSON.stringify({
+            seq: this.seqCounter++,
+            payload: { type: "stream", conversation_id: "mcp-tools", event },
+        }));
+    }
+    sendToolUse(callId, toolName, args) {
+        this.sendEvent({ type: "tool_use", call_id: callId, tool_name: toolName, arguments: args });
+    }
+    sendToolResult(callId, toolName, output, isError = false) {
+        this.sendEvent({ type: "tool_result", call_id: callId, tool_name: toolName, output, is_error: isError });
+    }
+    sendToolProgress(callId, toolName, elapsed) {
+        this.sendEvent({ type: "tool_progress", tool_use_id: callId, tool_name: toolName, elapsed_secs: elapsed });
+    }
+    sendStatus(message) {
+        this.sendEvent({ type: "status", message });
+    }
     get isConnected() {
         return this.client !== null && this.client.readyState === WebSocket.OPEN;
     }
