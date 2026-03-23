@@ -277,11 +277,17 @@ export class BrowserBridgeServer {
             },
         }));
     }
+    sendTurnStarted() {
+        this.sendEvent({ type: "turn_started" });
+    }
     sendToolUse(callId, toolName, args) {
         this.sendEvent({ type: "tool_use", call_id: callId, tool_name: toolName, arguments: args });
     }
     sendToolResult(callId, toolName, output, isError = false) {
         this.sendEvent({ type: "tool_result", call_id: callId, tool_name: toolName, output, is_error: isError });
+    }
+    sendStreamEnd(text) {
+        this.sendEvent({ type: "stream_end", fullText: text || "" });
     }
     sendToolProgress(callId, toolName, elapsed) {
         this.sendEvent({ type: "tool_progress", tool_use_id: callId, tool_name: toolName, elapsed_secs: elapsed });

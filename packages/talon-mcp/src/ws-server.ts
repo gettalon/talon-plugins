@@ -314,12 +314,20 @@ export class BrowserBridgeServer {
     }));
   }
 
+  sendTurnStarted(): void {
+    this.sendEvent({ type: "turn_started" });
+  }
+
   sendToolUse(callId: string, toolName: string, args: Record<string, unknown>): void {
     this.sendEvent({ type: "tool_use", call_id: callId, tool_name: toolName, arguments: args });
   }
 
   sendToolResult(callId: string, toolName: string, output: string, isError = false): void {
     this.sendEvent({ type: "tool_result", call_id: callId, tool_name: toolName, output, is_error: isError });
+  }
+
+  sendStreamEnd(text?: string): void {
+    this.sendEvent({ type: "stream_end", fullText: text || "" });
   }
 
   sendToolProgress(callId: string, toolName: string, elapsed: number): void {
