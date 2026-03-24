@@ -128,6 +128,50 @@ Open the browser console, navigate to my app, and show me any JavaScript errors
 | Claude Code plugin | Yes | No | No | No |
 | Extension needed | Yes | No | No | No |
 
+## Works With
+
+Built on MCP standard — works with any AI coding tool, not just Claude Code.
+
+### Claude Code (full experience)
+```bash
+/plugin marketplace add gettalon/talon-plugins
+/plugin install browser-control@gettalon-talon-plugins
+/reload-plugins
+```
+Includes: 15 MCP tools + two-way chat channel + setup skill + Chrome extension
+
+### Codex (OpenAI)
+Add to `.codex/config.toml`:
+```toml
+[mcp_servers.talon-browser]
+command = "npx"
+args = ["-y", "@gettalon/mcp@1"]
+```
+
+### Cursor
+Add to Cursor Settings → MCP Servers:
+```json
+{
+  "talon-browser": {
+    "command": "npx",
+    "args": ["-y", "@gettalon/mcp@1"]
+  }
+}
+```
+
+### Windsurf / Gemini CLI / Any MCP Client
+Same config — just point to `npx -y @gettalon/mcp@1` as the MCP server command.
+
+Then load the Chrome extension from `~/Downloads/talon-browser-control` (download from this repo's `plugins/browser-control/chrome-extension/`).
+
+| Feature | Claude Code | Codex / Cursor / Others |
+|---------|------------|------------------------|
+| 15 browser MCP tools | Yes | Yes |
+| Chrome extension | Yes | Yes |
+| Two-way chat (channels) | Yes | No |
+| Setup skill | Yes | No |
+| Plugin marketplace install | Yes | No (manual MCP config) |
+
 ## Links
 
 - **GitHub**: https://github.com/gettalon/talon-plugins
