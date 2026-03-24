@@ -1,6 +1,7 @@
 ---
 description: Guide users through Chrome extension setup for browser control. Use when user asks about setup, installing the extension, connecting Chrome, or when browser_control tools return "No browser connected".
 disable-model-invocation: false
+allowed-tools: [Bash]
 ---
 
 # Browser Control Setup Guide
@@ -9,19 +10,15 @@ Help the user set up the Talon Browser Control Chrome extension so Claude Code c
 
 ## Steps
 
-### 1. Find the Chrome Extension
+### 1. Install the Chrome Extension
 
-The extension is bundled with this plugin. Tell the user:
+Run the install script to copy the extension to Downloads:
 
-> The Chrome extension is included with the browser-control plugin. You need to load it as an unpacked extension in Chrome.
->
-> The extension files are at:
-> `~/.claude/plugins/cache/gettalon-talon-plugins/browser-control/*/chrome-extension/`
-
-Use the Bash tool to find the exact path:
 ```bash
-ls -d ~/.claude/plugins/cache/gettalon-talon-plugins/browser-control/*/chrome-extension/
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/install-extension.sh"
 ```
+
+This copies the extension to `~/Downloads/talon-browser-control` and opens Chrome's extensions page.
 
 ### 2. Load in Chrome
 
