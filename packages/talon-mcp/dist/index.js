@@ -3,7 +3,6 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { BrowserBridgeServer } from "./ws-server.js";
-import { BROWSER_TOOL, executeBrowserTool } from "./browser-tool.js";
 import { ALL_TOOLS } from "./tools.js";
 import { executeToolCall } from "./tool-executor.js";
 const PORT = parseInt(process.env.TALON_MCP_PORT ?? "21567", 10);
@@ -14,7 +13,7 @@ async function main() {
     const bridge = new BrowserBridgeServer(PORT);
     await bridge.start();
     // Create MCP server with both tools AND channel capabilities
-    const mcp = new Server({ name: "talon-browser", version: "1.0.0" }, {
+    const mcp = new Server({ name: "talon-browser", version: "1.1.1" }, {
         capabilities: {
             experimental: { "claude/channel": {} },
             tools: {},
@@ -23,10 +22,9 @@ async function main() {
             "The user is chatting from a Chrome side panel. Reply with the reply tool, passing chat_id back. " +
             "You also have browser_control tools to navigate, click, fill forms, take screenshots, and more in their Chrome browser.",
     });
-    // Register all tools: legacy browser_control + 15 focused tools + reply
+    // Register all tools: 15 focused tools + reply
     mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
         tools: [
-            BROWSER_TOOL,
             ...ALL_TOOLS,
             {
                 name: "reply",
@@ -45,11 +43,7 @@ async function main() {
     // Handle tool calls
     mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         const { name, arguments: args } = req.params;
-        // Legacy tool
-        if (name === "browser_control") {
-            return await executeBrowserTool(bridge, (args ?? {}));
-        }
-        // New focused tools
+        // Focused browser tools
         if (FOCUSED_TOOL_NAMES.has(name)) {
             return await executeToolCall(name, (args ?? {}), bridge);
         }
