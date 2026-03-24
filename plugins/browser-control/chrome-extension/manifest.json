@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Talon Browser Control",
+  "name": "Talon",
   "version": "2.0.0",
-  "description": "Connects to Talon Desktop via WebSocket to enable AI-driven browser automation using Chrome DevTools Protocol (CDP) for full DevTools-level control.",
+  "description": "AI browser control and chat for Claude Code",
   "permissions": [
     "debugger",
     "tabs",
@@ -11,8 +11,7 @@
     "cookies",
     "storage",
     "alarms",
-    "sidePanel",
-    "nativeMessaging"
+    "sidePanel"
   ],
   "host_permissions": [
     "<all_urls>"
