@@ -93,6 +93,8 @@ export async function executeBrowserTool(
   const callId = `bc-${Date.now()}`;
   const { action: _, ...params } = args;
 
+  // Notify extension: tool started (as proper tool_use event)
+  server.sendToolUse(callId, `browser_control:${action}`, params);
   const startTime = Date.now();
 
   try {
@@ -114,7 +116,7 @@ export async function executeBrowserTool(
           ? b64.replace(/^data:image\/\w+;base64,/, "")
           : b64;
         const { data, mimeType } = await compressScreenshot(clean);
-        server.sendChatReply("mcp", `📸 Screenshot captured (${elapsed.toFixed(1)}s)`);
+        server.sendToolResult(callId, `browser_control:${action}`, `Screenshot captured (${elapsed.toFixed(1)}s)`);
         return { content: [{ type: "image", data, mimeType }] };
       }
     }
@@ -122,20 +124,18 @@ export async function executeBrowserTool(
     // Handle errors from extension
     if (resultObj?.error) {
       const errMsg = `Browser error: ${resultObj.error}`;
-      server.sendChatReply("mcp", `❌ ${action}: ${resultObj.error}`);
+      server.sendToolResult(callId, `browser_control:${action}`, String(resultObj.error), true);
       return { content: [{ type: "text", text: errMsg }], isError: true };
     }
 
     // Normal result
     const text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
     const summary = text.length > 200 ? text.substring(0, 200) + "..." : text;
-    // Small delay to let extension finish processing browser_command_response
-    await new Promise(r => setTimeout(r, 100));
-    server.sendChatReply("mcp", `🔧 ${action}: ${summary}`);
+    server.sendToolResult(callId, `browser_control:${action}`, summary);
     return { content: [{ type: "text", text }] };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    server.sendChatReply("mcp", `❌ ${action}: ${message}`);
+    server.sendToolResult(callId, `browser_control:${action}`, message, true);
     return { content: [{ type: "text", text: message }], isError: true };
   }
 }
