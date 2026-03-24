@@ -16,6 +16,15 @@
       "author": { "name": "Talon" },
       "category": "browser",
       "keywords": ["browser", "chrome", "cdp", "automation", "web"]
+    },
+    {
+      "name": "computer-use",
+      "source": "./plugins/computer-use",
+      "description": "Control macOS desktop — mouse, keyboard, screenshots, windows, displays, clipboard. Native Quartz automation via usecomputer CLI.",
+      "version": "1.0.0",
+      "author": { "name": "Talon" },
+      "category": "automation",
+      "keywords": ["computer-use", "desktop", "macos", "mouse", "keyboard", "screenshot", "automation"]
     }
   ]
 }
