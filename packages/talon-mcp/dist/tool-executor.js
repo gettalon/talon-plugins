@@ -67,10 +67,14 @@ function translateToolCall(toolName, args) {
             const sub = args.action;
             return { action: sub, params: {} };
         }
-        // browser_emulate — sub-actions map directly
+        // browser_emulate — sub-actions, ensure numeric params
         case "browser_emulate": {
             const sub = args.action;
             const rest = omit(args, ["action"]);
+            for (const k of ["width", "height", "latitude", "longitude", "accuracy", "deviceScaleFactor"]) {
+                if (rest[k] !== undefined)
+                    rest[k] = Number(rest[k]);
+            }
             return { action: sub, params: rest };
         }
         // browser_performance — translate sub-action names
