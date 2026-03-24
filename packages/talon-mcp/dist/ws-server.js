@@ -21,7 +21,39 @@ export class BrowserBridgeServer {
     }
     async start() {
         const httpServer = createServer((req, res) => this.handleHttp(req, res));
+        // Try ports in order: configured port, then 21567-21569, then random
+        const portsToTry = [...new Set([this.port, 21567, 21568, 21569, 0])];
+        for (const port of portsToTry) {
+            try {
+                await new Promise((resolve, reject) => {
+                    httpServer.once("error", (err) => {
+                        if (err.code === "EADDRINUSE") {
+                            process.stderr.write(`[talon-mcp] Port ${port} in use, trying next...\n`);
+                            reject(err);
+                        }
+                        else {
+                            reject(err);
+                        }
+                    });
+                    httpServer.listen(port, () => {
+                        this.port = httpServer.address().port;
+                        resolve();
+                    });
+                });
+                break; // success
+            }
+            catch {
+                httpServer.removeAllListeners("error");
+                continue;
+            }
+        }
+        if (!httpServer.listening) {
+            throw new Error("Could not bind to any port");
+        }
+        // Create WebSocket server AFTER successful port binding
         const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
+        this.writeDiscoveryFiles();
+        process.stderr.write(`[talon-mcp] Server listening on port ${this.port}\n`);
         wss.on("connection", (ws, req) => {
             const url = new URL(req.url ?? "/", `http://localhost:${this.port}`);
             const token = url.searchParams.get("token");
@@ -91,34 +123,6 @@ export class BrowserBridgeServer {
                 process.stderr.write(`[talon-mcp] WebSocket error: ${err.message}\n`);
             });
         });
-        // Try ports in order: configured port, then 21567-21569, then random
-        const portsToTry = [...new Set([this.port, 21567, 21568, 21569, 0])];
-        for (const port of portsToTry) {
-            try {
-                await new Promise((resolve, reject) => {
-                    httpServer.once("error", (err) => {
-                        if (err.code === "EADDRINUSE") {
-                            process.stderr.write(`[talon-mcp] Port ${port} in use, trying next...\n`);
-                            reject(err);
-                        }
-                        else {
-                            reject(err);
-                        }
-                    });
-                    httpServer.listen(port, () => {
-                        this.port = httpServer.address().port;
-                        this.writeDiscoveryFiles();
-                        process.stderr.write(`[talon-mcp] Server listening on port ${this.port}\n`);
-                        resolve();
-                    });
-                });
-                return; // success
-            }
-            catch {
-                continue;
-            }
-        }
-        throw new Error("Could not bind to any port");
     }
     writeDiscoveryFiles() {
         try {
