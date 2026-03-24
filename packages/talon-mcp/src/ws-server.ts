@@ -109,13 +109,33 @@ export class BrowserBridgeServer {
       });
     });
 
-    return new Promise((resolve) => {
-      httpServer.listen(this.port, () => {
-        this.writeDiscoveryFiles();
-        process.stderr.write(`[talon-mcp] Server listening on port ${this.port}\n`);
-        resolve();
-      });
-    });
+    // Try ports in order: configured port, then 21567-21569, then random
+    const portsToTry = [...new Set([this.port, 21567, 21568, 21569, 0])];
+
+    for (const port of portsToTry) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          httpServer.once("error", (err: NodeJS.ErrnoException) => {
+            if (err.code === "EADDRINUSE") {
+              process.stderr.write(`[talon-mcp] Port ${port} in use, trying next...\n`);
+              reject(err);
+            } else {
+              reject(err);
+            }
+          });
+          httpServer.listen(port, () => {
+            this.port = (httpServer.address() as any).port;
+            this.writeDiscoveryFiles();
+            process.stderr.write(`[talon-mcp] Server listening on port ${this.port}\n`);
+            resolve();
+          });
+        });
+        return; // success
+      } catch {
+        continue;
+      }
+    }
+    throw new Error("Could not bind to any port");
   }
 
   private writeDiscoveryFiles(): void {
