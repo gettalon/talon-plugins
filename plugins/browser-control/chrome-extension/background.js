@@ -2299,6 +2299,152 @@ async function executeCommand(msg) {
       return { results, completed: results.length, total: actions.length };
     }
 
+    // ── Performance & Analysis (migrated from Chrome DevTools MCP) ──
+
+    case "performance_start_trace": {
+      const tab = await getActiveTab();
+      await ensureCdpAttached(tab.id);
+      await enableCdpDomain(tab.id, "Tracing");
+      const categories = msg.categories || "-*,devtools.timeline,v8.execute,disabled-by-default-devtools.timeline,disabled-by-default-devtools.timeline.frame,toplevel,blink.console,blink.user_timing,latencyInfo,disabled-by-default-v8.cpu_profiler";
+      await cdpSend(tab.id, "Tracing.start", {
+        traceConfig: { recordMode: "recordUntilFull", includedCategories: categories.split(",") },
+      });
+      return { started: true, categories };
+    }
+
+    case "performance_stop_trace": {
+      const tab = await getActiveTab();
+      await ensureCdpAttached(tab.id);
+      const chunks = [];
+      return new Promise((resolve) => {
+        const onData = (source, method, params) => {
+          if (method === "Tracing.dataCollected") chunks.push(...params.value);
+        };
+        const onEnd = (source, method) => {
+          if (method === "Tracing.tracingComplete") {
+            chrome.debugger.onEvent.removeListener(onData);
+            chrome.debugger.onEvent.removeListener(onEnd);
+            const summary = {
+              eventCount: chunks.length,
+              categories: [...new Set(chunks.map(e => e.cat).filter(Boolean))].slice(0, 20),
+              duration_ms: chunks.length > 0 ? Math.round((chunks[chunks.length - 1].ts - chunks[0].ts) / 1000) : 0,
+              topEvents: Object.entries(chunks.reduce((acc, e) => { acc[e.name] = (acc[e.name] || 0) + 1; return acc; }, {}))
+                .sort((a, b) => b[1] - a[1]).slice(0, 15).map(([name, count]) => ({ name, count })),
+            };
+            resolve(summary);
+          }
+        };
+        chrome.debugger.onEvent.addListener(onData);
+        chrome.debugger.onEvent.addListener(onEnd);
+        cdpSend(tab.id, "Tracing.end");
+        // Timeout fallback
+        setTimeout(() => {
+          chrome.debugger.onEvent.removeListener(onData);
+          chrome.debugger.onEvent.removeListener(onEnd);
+          resolve({ eventCount: chunks.length, timeout: true });
+        }, 30000);
+      });
+    }
+
+    case "take_memory_snapshot": {
+      const tab = await getActiveTab();
+      await ensureCdpAttached(tab.id);
+      await enableCdpDomain(tab.id, "HeapProfiler");
+      // Get heap stats
+      const metrics = await cdpSend(tab.id, "Runtime.getHeapUsage");
+      return {
+        usedSize: metrics.usedSize,
+        totalSize: metrics.totalSize,
+        usedMB: Math.round(metrics.usedSize / 1024 / 1024 * 100) / 100,
+        totalMB: Math.round(metrics.totalSize / 1024 / 1024 * 100) / 100,
+        usagePercent: Math.round(metrics.usedSize / metrics.totalSize * 100),
+      };
+    }
+
+    case "lighthouse_audit": {
+      // Basic performance audit using Performance API and CDP metrics
+      const tab = await getActiveTab();
+      await ensureCdpAttached(tab.id);
+      await enableCdpDomain(tab.id, "Performance");
+      const perfMetrics = await cdpSend(tab.id, "Performance.getMetrics");
+      const navTiming = await cdpEvaluate(tab.id, `JSON.stringify(performance.getEntriesByType('navigation')[0]?.toJSON() || {})`);
+      const paintTiming = await cdpEvaluate(tab.id, `JSON.stringify(performance.getEntriesByType('paint').map(e => ({name: e.name, startTime: Math.round(e.startTime)})))`);
+      const resourceCount = await cdpEvaluate(tab.id, `performance.getEntriesByType('resource').length`);
+
+      const nav = JSON.parse(navTiming || '{}');
+      const paints = JSON.parse(paintTiming || '[]');
+
+      return {
+        url: nav.name || '',
+        timing: {
+          domContentLoaded: Math.round(nav.domContentLoadedEventEnd - nav.startTime) || null,
+          load: Math.round(nav.loadEventEnd - nav.startTime) || null,
+          firstPaint: paints.find(p => p.name === 'first-paint')?.startTime || null,
+          firstContentfulPaint: paints.find(p => p.name === 'first-contentful-paint')?.startTime || null,
+          transferSize: nav.transferSize || null,
+        },
+        resourceCount,
+        cdpMetrics: Object.fromEntries(
+          perfMetrics.metrics.filter(m => ['JSHeapUsedSize', 'JSHeapTotalSize', 'Nodes', 'Documents', 'Frames', 'LayoutCount', 'RecalcStyleCount', 'LayoutDuration', 'ScriptDuration'].includes(m.name))
+            .map(m => [m.name, m.value])
+        ),
+      };
+    }
+
+    case "fill_form": {
+      const { fields } = msg;
+      if (!fields || typeof fields !== 'object') throw new Error("fields object is required, e.g. {\"#email\": \"test@test.com\", \"#password\": \"123\"}");
+      const tab = await getActiveTab();
+      await ensureCdpAttached(tab.id);
+      await enableCdpDomain(tab.id, "Input");
+
+      const results = [];
+      for (const [selector, value] of Object.entries(fields)) {
+        try {
+          await cdpEvaluate(tab.id, `(function() {
+            const el = document.querySelector(${JSON.stringify(selector)});
+            if (!el) throw new Error("Not found: ${selector}");
+            el.focus();
+            el.value = '';
+          })()`);
+          await cdpSend(tab.id, "Input.insertText", { text: String(value) });
+          await cdpEvaluate(tab.id, `(function() {
+            const el = document.querySelector(${JSON.stringify(selector)});
+            if (el) {
+              el.dispatchEvent(new Event("input", { bubbles: true }));
+              el.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          })()`);
+          results.push({ selector, filled: true });
+        } catch (err) {
+          results.push({ selector, filled: false, error: err.message });
+        }
+      }
+      return { results, filled: results.filter(r => r.filled).length, total: results.length };
+    }
+
+    case "upload_file": {
+      const { selector, files: filePaths } = msg;
+      if (!selector) throw new Error("selector is required for upload_file");
+      if (!filePaths || !Array.isArray(filePaths)) throw new Error("files array is required");
+      const tab = await getActiveTab();
+      await ensureCdpAttached(tab.id);
+      await enableCdpDomain(tab.id, "DOM");
+
+      const doc = await cdpSend(tab.id, "DOM.getDocument");
+      const nodeResult = await cdpSend(tab.id, "DOM.querySelector", {
+        nodeId: doc.root.nodeId,
+        selector,
+      });
+      if (!nodeResult.nodeId) throw new Error("File input not found: " + selector);
+
+      await cdpSend(tab.id, "DOM.setFileInputFiles", {
+        nodeId: nodeResult.nodeId,
+        files: filePaths,
+      });
+      return { uploaded: true, selector, fileCount: filePaths.length };
+    }
+
     default:
       throw new Error(`Unknown action: ${action}`);
   }
