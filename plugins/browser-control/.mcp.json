@@ -1,6 +1,6 @@
 {
   "talon-browser": {
     "command": "node",
-    "args": ["/Users/hunter/Documents/workspace/hunter/talon-plugins/packages/talon-mcp/dist/index.js"]
+    "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"]
   }
 }
