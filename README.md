@@ -6,10 +6,10 @@ Official Talon plugins for Claude Code. Open-source marketplace for browser cont
 
 ```bash
 # Add the marketplace
-/plugin marketplace add gettalon/claude-plugins
+/plugin marketplace add gettalon/talon-plugins
 
 # Install browser control
-/plugin install browser-control@gettalon-claude-plugins
+/plugin install browser-control@gettalon-talon-plugins
 
 # Reload plugins
 /reload-plugins

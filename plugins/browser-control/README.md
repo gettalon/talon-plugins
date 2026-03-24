@@ -20,8 +20,8 @@ Gives Claude Code the ability to control Chrome:
 ### 1. Install the plugin
 
 ```bash
-/plugin marketplace add gettalon/claude-plugins
-/plugin install browser-control@gettalon-claude-plugins
+/plugin marketplace add gettalon/talon-plugins
+/plugin install browser-control@gettalon-talon-plugins
 ```
 
 ### 2. Load the Chrome extension
