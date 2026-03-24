@@ -134,12 +134,12 @@ Lists all windows with id, app, pid, size, position, title.
 
 ### Clipboard Get
 ```bash
-usecomputer clipboard get
+pbpaste
 ```
 
 ### Clipboard Set
 ```bash
-usecomputer clipboard set "text to copy"
+echo "text to copy" | pbcopy
 ```
 
 ## Coordinate Mapping
