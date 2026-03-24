@@ -25,6 +25,15 @@
       "author": { "name": "Talon" },
       "category": "automation",
       "keywords": ["computer-use", "desktop", "macos", "mouse", "keyboard", "screenshot", "automation"]
+    },
+    {
+      "name": "autoresearch",
+      "source": "./plugins/autoresearch",
+      "description": "Autonomous experiment loop — iteratively edit, test, measure, keep/discard. Inspired by Karpathy's autoresearch.",
+      "version": "0.1.0",
+      "author": { "name": "Talon" },
+      "category": "research",
+      "keywords": ["autoresearch", "karpathy", "experiment", "loop", "autonomous", "ml", "optimization"]
     }
   ]
 }
