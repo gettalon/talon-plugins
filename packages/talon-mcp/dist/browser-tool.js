@@ -3,7 +3,8 @@ const MAX_WIDTH = 1280;
 const JPEG_QUALITY = 60;
 export const BROWSER_TOOL = {
     name: "browser_control",
-    description: "Control a Chrome browser via DevTools Protocol. " +
+    description: "[LEGACY — prefer the individual browser_* tools instead] " +
+        "Control a Chrome browser via DevTools Protocol. " +
         "Actions: navigate, click, fill, execute_js, screenshot, get_page_info, " +
         "scroll, hover, type_text, keyboard, select, wait, get_tabs, switch_tab, " +
         "new_tab, close_tab, get_cookies, snapshot, get_console, get_errors, " +
@@ -68,7 +69,7 @@ export const BROWSER_TOOL = {
         required: ["action"],
     },
 };
-async function compressScreenshot(base64Data) {
+export async function compressScreenshot(base64Data) {
     const buf = Buffer.from(base64Data, "base64");
     const compressed = await sharp(buf)
         .resize({ width: MAX_WIDTH, withoutEnlargement: true })

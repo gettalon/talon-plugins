@@ -4,7 +4,11 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { BrowserBridgeServer } from "./ws-server.js";
 import { BROWSER_TOOL, executeBrowserTool } from "./browser-tool.js";
+import { ALL_TOOLS } from "./tools.js";
+import { executeToolCall } from "./tool-executor.js";
 const PORT = parseInt(process.env.TALON_MCP_PORT ?? "21567", 10);
+/** Set of all new focused tool names for fast lookup */
+const FOCUSED_TOOL_NAMES = new Set(ALL_TOOLS.map((t) => t.name));
 async function main() {
     // Start the WebSocket/HTTP server for Chrome extension
     const bridge = new BrowserBridgeServer(PORT);
@@ -19,10 +23,11 @@ async function main() {
             "The user is chatting from a Chrome side panel. Reply with the reply tool, passing chat_id back. " +
             "You also have browser_control tools to navigate, click, fill forms, take screenshots, and more in their Chrome browser.",
     });
-    // Register browser control + reply tools
+    // Register all tools: legacy browser_control + 15 focused tools + reply
     mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
         tools: [
             BROWSER_TOOL,
+            ...ALL_TOOLS,
             {
                 name: "reply",
                 description: "Send a message back to the Chrome extension chat panel",
@@ -40,8 +45,13 @@ async function main() {
     // Handle tool calls
     mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         const { name, arguments: args } = req.params;
+        // Legacy tool
         if (name === "browser_control") {
             return await executeBrowserTool(bridge, (args ?? {}));
+        }
+        // New focused tools
+        if (FOCUSED_TOOL_NAMES.has(name)) {
+            return await executeToolCall(name, (args ?? {}), bridge);
         }
         if (name === "reply") {
             const { chat_id, text } = args;

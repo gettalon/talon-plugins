@@ -8,6 +8,7 @@ const JPEG_QUALITY = 60;
 export const BROWSER_TOOL: McpToolDef = {
   name: "browser_control",
   description:
+    "[LEGACY — prefer the individual browser_* tools instead] " +
     "Control a Chrome browser via DevTools Protocol. " +
     "Actions: navigate, click, fill, execute_js, screenshot, get_page_info, " +
     "scroll, hover, type_text, keyboard, select, wait, get_tabs, switch_tab, " +
@@ -74,7 +75,7 @@ export const BROWSER_TOOL: McpToolDef = {
   },
 };
 
-async function compressScreenshot(base64Data: string): Promise<{ data: string; mimeType: string }> {
+export async function compressScreenshot(base64Data: string): Promise<{ data: string; mimeType: string }> {
   const buf = Buffer.from(base64Data, "base64");
   const compressed = await sharp(buf)
     .resize({ width: MAX_WIDTH, withoutEnlargement: true })
