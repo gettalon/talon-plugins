@@ -93,7 +93,8 @@ export async function executeBrowserTool(
   const callId = `bc-${Date.now()}`;
   const { action: _, ...params } = args;
 
-  // Notify extension: tool started (as proper tool_use event)
+  // Notify extension: start a turn, then send tool_use event
+  server.sendTurnStarted();
   server.sendToolUse(callId, `browser_control:${action}`, params);
   const startTime = Date.now();
 
@@ -117,6 +118,7 @@ export async function executeBrowserTool(
           : b64;
         const { data, mimeType } = await compressScreenshot(clean);
         server.sendToolResult(callId, `browser_control:${action}`, `Screenshot captured (${elapsed.toFixed(1)}s)`);
+        server.sendStreamEnd();
         return { content: [{ type: "image", data, mimeType }] };
       }
     }
@@ -125,6 +127,7 @@ export async function executeBrowserTool(
     if (resultObj?.error) {
       const errMsg = `Browser error: ${resultObj.error}`;
       server.sendToolResult(callId, `browser_control:${action}`, String(resultObj.error), true);
+      server.sendStreamEnd();
       return { content: [{ type: "text", text: errMsg }], isError: true };
     }
 
@@ -132,10 +135,12 @@ export async function executeBrowserTool(
     const text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
     const summary = text.length > 200 ? text.substring(0, 200) + "..." : text;
     server.sendToolResult(callId, `browser_control:${action}`, summary);
+    server.sendStreamEnd();
     return { content: [{ type: "text", text }] };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     server.sendToolResult(callId, `browser_control:${action}`, message, true);
+    server.sendStreamEnd();
     return { content: [{ type: "text", text: message }], isError: true };
   }
 }
