@@ -15,38 +15,57 @@ export class BrowserBridgeServer {
     chatHandler = null;
     authToken;
     port;
+    reusing = false;
     constructor(port) {
         this.port = port ?? DEFAULT_PORT;
         this.authToken = randomUUID();
     }
+    /** Check if an existing talon-mcp is already running on this port. Returns true if reusable. */
+    async checkExisting() {
+        try {
+            const resp = await fetch(`http://localhost:${this.port}/health`, { signal: AbortSignal.timeout(1000) });
+            const data = await resp.json();
+            if (data.service === "talon-mcp") {
+                process.stderr.write(`[talon-mcp] Reusing existing server on port ${this.port}\n`);
+                // Get the token from the existing server
+                const authResp = await fetch(`http://localhost:${this.port}/auth/local`, { method: "POST", signal: AbortSignal.timeout(1000) });
+                const authData = await authResp.json();
+                if (authData.token) {
+                    this.authToken = authData.token;
+                }
+                return true;
+            }
+        }
+        catch { }
+        return false;
+    }
     async start() {
+        // Check if an existing talon-mcp is already running — reuse it
+        const existing = await this.checkExisting();
+        if (existing) {
+            this.reusing = true;
+            return;
+        }
         const httpServer = createServer((req, res) => this.handleHttp(req, res));
-        // Try ports in order: configured port, then 21567-21569, then random
-        const portsToTry = [...new Set([this.port, 21567, 21568, 21569, 0])];
-        for (const port of portsToTry) {
-            try {
-                await new Promise((resolve, reject) => {
-                    httpServer.once("error", (err) => {
-                        if (err.code === "EADDRINUSE") {
-                            process.stderr.write(`[talon-mcp] Port ${port} in use, trying next...\n`);
-                            reject(err);
-                        }
-                        else {
-                            reject(err);
-                        }
-                    });
-                    httpServer.listen(port, () => {
+        await new Promise((resolve, reject) => {
+            httpServer.once("error", (err) => {
+                if (err.code === "EADDRINUSE") {
+                    // Port taken by non-talon process, use random
+                    process.stderr.write(`[talon-mcp] Port ${this.port} in use by another process, using random port\n`);
+                    httpServer.listen(0, () => {
                         this.port = httpServer.address().port;
                         resolve();
                     });
-                });
-                break; // success
-            }
-            catch {
-                httpServer.removeAllListeners("error");
-                continue;
-            }
-        }
+                }
+                else {
+                    reject(err);
+                }
+            });
+            httpServer.listen(this.port, () => {
+                this.port = httpServer.address().port;
+                resolve();
+            });
+        });
         if (!httpServer.listening) {
             throw new Error("Could not bind to any port");
         }
@@ -238,6 +257,10 @@ export class BrowserBridgeServer {
         res.end("Not Found");
     }
     async sendCommand(action, params) {
+        // In reuse mode, proxy command through the existing server's WS
+        if (this.reusing) {
+            return this.proxyCommand(action, params);
+        }
         if (!this.client || this.client.readyState !== WebSocket.OPEN) {
             throw new Error("No browser connected. Load the Chrome extension and open Chrome.");
         }
@@ -328,7 +351,56 @@ export class BrowserBridgeServer {
     sendStatus(message) {
         this.sendEvent({ type: "status", message });
     }
+    proxyWs = null;
+    proxyPending = new Map();
+    async ensureProxyConnection() {
+        if (this.proxyWs && this.proxyWs.readyState === WebSocket.OPEN)
+            return this.proxyWs;
+        return new Promise((resolve, reject) => {
+            const ws = new WebSocket(`ws://localhost:${this.port}/ws?token=${this.authToken}`);
+            ws.on("open", () => {
+                this.proxyWs = ws;
+                process.stderr.write(`[talon-mcp] Proxy connected to existing server\n`);
+                resolve(ws);
+            });
+            ws.on("message", (data) => {
+                try {
+                    let msg = JSON.parse(data.toString());
+                    // Unwrap seq envelope
+                    if (msg.seq !== undefined && msg.payload)
+                        msg = msg.payload;
+                    if (msg.type === "browser_command_response" && msg.request_id) {
+                        const p = this.proxyPending.get(msg.request_id);
+                        if (p) {
+                            clearTimeout(p.timer);
+                            this.proxyPending.delete(msg.request_id);
+                            p.resolve(msg.result);
+                        }
+                    }
+                }
+                catch { }
+            });
+            ws.on("error", (err) => reject(err));
+            ws.on("close", () => { this.proxyWs = null; });
+            setTimeout(() => reject(new Error("Proxy connection timeout")), 5000);
+        });
+    }
+    async proxyCommand(action, params) {
+        const ws = await this.ensureProxyConnection();
+        const requestId = randomUUID();
+        const cmd = { type: "browser_command", request_id: requestId, action, ...params };
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                this.proxyPending.delete(requestId);
+                reject(new Error("Browser command timed out after 30 seconds"));
+            }, COMMAND_TIMEOUT_MS);
+            this.proxyPending.set(requestId, { resolve, reject, timer });
+            ws.send(JSON.stringify({ seq: Date.now(), payload: cmd }));
+        });
+    }
     get isConnected() {
+        if (this.reusing)
+            return this.proxyWs !== null && this.proxyWs.readyState === WebSocket.OPEN;
         return this.client !== null && this.client.readyState === WebSocket.OPEN;
     }
 }

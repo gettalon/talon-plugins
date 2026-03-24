@@ -5,7 +5,10 @@ export declare class BrowserBridgeServer {
     private chatHandler;
     private authToken;
     private port;
+    private reusing;
     constructor(port?: number);
+    /** Check if an existing talon-mcp is already running on this port. Returns true if reusable. */
+    checkExisting(): Promise<boolean>;
     start(): Promise<void>;
     private writeDiscoveryFiles;
     private installNativeMessagingHost;
@@ -26,6 +29,10 @@ export declare class BrowserBridgeServer {
     sendStreamEnd(text?: string): void;
     sendToolProgress(callId: string, toolName: string, elapsed: number): void;
     sendStatus(message: string): void;
+    private proxyWs;
+    private proxyPending;
+    private ensureProxyConnection;
+    private proxyCommand;
     get isConnected(): boolean;
 }
 export {};
