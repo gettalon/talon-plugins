@@ -111,7 +111,14 @@ else
   echo -e "  ${B}d${R}) Detected only (${detected_list[*]})"
   echo -e "  ${B}s${R}) Select individually"
   echo ""
-  read -r -p "Choice [a/d/s] (default: a): " choice < /dev/tty 2>/dev/null || choice="a"
+  if [ -t 0 ]; then
+    # Interactive terminal
+    read -r -p "Choice [a/d/s] (default: a): " choice
+  elif [ -e /dev/tty ]; then
+    read -r -p "Choice [a/d/s] (default: a): " choice < /dev/tty
+  else
+    choice="a"
+  fi
   choice="${choice:-a}"
 
   case "$choice" in
@@ -123,7 +130,13 @@ else
       ;;
     s|S)
       for t in "${ALL_TOOLS[@]}"; do
-        read -r -p "  Setup $t? [Y/n]: " yn < /dev/tty 2>/dev/null || yn="y"
+        if [ -t 0 ]; then
+          read -r -p "  Setup $t? [Y/n]: " yn
+        elif [ -e /dev/tty ]; then
+          read -r -p "  Setup $t? [Y/n]: " yn < /dev/tty
+        else
+          yn="y"
+        fi
         yn="${yn:-y}"
         [[ "$yn" =~ ^[Yy] ]] && "setup_$t"
       done
