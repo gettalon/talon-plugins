@@ -34,6 +34,15 @@
       "author": { "name": "Talon" },
       "category": "research",
       "keywords": ["autoresearch", "karpathy", "experiment", "loop", "autonomous", "ml", "optimization"]
+    },
+    {
+      "name": "ai-dispatch",
+      "source": "./plugins/ai-dispatch",
+      "description": "Dispatch subagents to multiple AI backends (GLM, Doubao, DeepSeek, Kimi, MiniMax). Simple: dispatch ark-code \"prompt\"",
+      "version": "0.3.0",
+      "author": { "name": "Talon" },
+      "category": "ai",
+      "keywords": ["ai", "dispatch", "subagent", "multi-backend", "glm", "doubao", "deepseek", "kimi", "minimax"]
     }
   ]
 }
