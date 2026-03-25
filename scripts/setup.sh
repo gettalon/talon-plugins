@@ -60,18 +60,34 @@ setup_claude() {
     skip "claude CLI not found"
     return
   fi
+
   # Add marketplace if not present
   if ! claude plugin marketplace list 2>/dev/null | grep -q "gettalon-talon-plugins"; then
     claude plugin marketplace add gettalon/talon-plugins 2>/dev/null && ok "Marketplace added" || info "Marketplace may already exist"
   else
     ok "Marketplace already added"
   fi
-  # Install plugins
-  for plugin in browser-control computer-use ai-dispatch gitlab-scrum; do
+
+  # Pull plugin list from marketplace.json
+  MARKETPLACE_URL="https://raw.githubusercontent.com/gettalon/talon-plugins/master/.claude-plugin/marketplace.json"
+  PLUGIN_NAMES=$(curl -fsSL "$MARKETPLACE_URL" 2>/dev/null | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for p in data.get('plugins', []):
+    print(p['name'])
+" 2>/dev/null)
+
+  if [ -z "$PLUGIN_NAMES" ]; then
+    # Fallback if fetch fails
+    PLUGIN_NAMES="web computer-use ai-dispatch autoresearch gitlab-scrum"
+  fi
+
+  # Install each plugin
+  for plugin in $PLUGIN_NAMES; do
     if claude plugin list 2>/dev/null | grep -q "${plugin}@gettalon-talon-plugins"; then
       ok "$plugin already installed"
     else
-      claude plugin install "${plugin}@gettalon-talon-plugins" 2>/dev/null && ok "$plugin installed" || info "$plugin — install manually: /plugin install ${plugin}@gettalon-talon-plugins"
+      claude plugin install "${plugin}@gettalon-talon-plugins" 2>/dev/null && ok "$plugin installed" || info "$plugin — run: /plugin install ${plugin}@gettalon-talon-plugins"
     fi
   done
   info "Run /reload-plugins in Claude Code to activate"

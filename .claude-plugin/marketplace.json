@@ -83,6 +83,27 @@
         "kimi",
         "minimax"
       ]
+    },
+    {
+      "name": "gitlab-scrum",
+      "source": "./plugins/gitlab-scrum",
+      "description": "GitLab Scrum management via glab CLI — issues, milestones, boards, wiki, sprint planning.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Talon"
+      },
+      "category": "project-management",
+      "keywords": [
+        "gitlab",
+        "scrum",
+        "kanban",
+        "issues",
+        "milestones",
+        "boards",
+        "wiki",
+        "sprint",
+        "glab"
+      ]
     }
   ]
 }
