@@ -6,15 +6,5 @@
   "homepage": "https://github.com/gettalon/talon-plugins",
   "repository": "https://github.com/gettalon/talon-plugins",
   "license": "MIT",
-  "keywords": ["ai", "dispatch", "subagent", "multi-backend", "glm", "doubao", "deepseek", "kimi", "minimax", "ark"],
-  "skills": [
-    {
-      "name": "ai-dispatch",
-      "path": "skills/ai-dispatch/SKILL.md"
-    },
-    {
-      "name": "ai-dispatch-setup",
-      "path": "skills/ai-dispatch-setup/SKILL.md"
-    }
-  ]
+  "keywords": ["ai", "dispatch", "subagent", "multi-backend", "glm", "doubao", "deepseek", "kimi", "minimax", "ark"]
 }
