@@ -190,10 +190,21 @@ case "$TOOL" in
     fi
     DISPATCH_ID=$(register_dispatch "$BACKEND" "claude" "$PROMPT")
     echo "[dispatch] $DISPATCH_ID ($BACKEND)" >&2
-    exec claude -p --dangerously-skip-permissions \
-      --output-format stream-json --verbose \
-      --json-schema "$SCHEMA" \
-      "$PROMPT"
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    RENDERER="$SCRIPT_DIR/stream-render.py"
+    if [[ -t 1 && -f "$RENDERER" ]]; then
+      # Interactive terminal: render stream in real-time
+      claude -p --dangerously-skip-permissions \
+        --output-format stream-json --verbose \
+        --json-schema "$SCHEMA" \
+        "$PROMPT" 2>/dev/null | python3 "$RENDERER"
+    else
+      # Non-interactive (background/pipe): raw stream-json
+      exec claude -p --dangerously-skip-permissions \
+        --output-format stream-json --verbose \
+        --json-schema "$SCHEMA" \
+        "$PROMPT"
+    fi
     ;;
 esac
 
