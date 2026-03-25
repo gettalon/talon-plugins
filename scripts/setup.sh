@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Talon Plugins — setup for AI coding tools
+# Talon Plugins — cross-tool setup (MCP + Skills)
 # Usage: curl -fsSL https://raw.githubusercontent.com/gettalon/talon-plugins/master/scripts/setup.sh | bash
 # Or:    bash setup.sh [all|codex|cursor|windsurf|gemini|claude]
 set -euo pipefail
 
-REPO="https://raw.githubusercontent.com/gettalon/talon-plugins/master"
+REPO_RAW="https://raw.githubusercontent.com/gettalon/talon-plugins/master"
+REPO_GIT="https://github.com/gettalon/talon-plugins.git"
 MCP_PKG="@gettalon/mcp@2"
 
 G='\033[32m' Y='\033[33m' C='\033[36m' D='\033[2m' B='\033[1m' R='\033[0m' RED='\033[31m'
@@ -13,69 +14,133 @@ skip() { echo -e "  ${D}– $1${R}"; }
 info() { echo -e "  ${D}$1${R}"; }
 head() { echo -e "\n${B}${C}$1${R}"; }
 
-# ─── MCP config helpers ───
+# ─── MCP helpers ───
 
 add_json_mcp() {
-  local file="$1" key="$2" cmd="$3" shift; shift; shift
-  local args_json="$*"
-  local dir; dir=$(dirname "$file")
-  mkdir -p "$dir"
+  local file="$1" key="$2" cmd="$3"; shift 3; local args_json="$*"
+  mkdir -p "$(dirname "$file")"
   if [ -f "$file" ] && grep -q "\"$key\"" "$file" 2>/dev/null; then
-    ok "$key already in $file"
+    ok "$key already in $(basename "$file")"
     return
   fi
   python3 -c "
 import json, os
 f = '$file'
-cfg = {}
-if os.path.exists(f):
-    with open(f) as fh: cfg = json.load(fh)
+cfg = json.load(open(f)) if os.path.exists(f) else {}
 cfg.setdefault('mcpServers', {})['$key'] = {'command': '$cmd', 'args': $args_json}
-with open(f, 'w') as fh: json.dump(cfg, fh, indent=2)
+json.dump(cfg, open(f, 'w'), indent=2)
 " 2>/dev/null
-  ok "Added $key to $file"
+  ok "Added $key to $(basename "$file")"
 }
 
 add_toml_mcp() {
   local file="$1" key="$2" cmd="$3" args="$4"
   mkdir -p "$(dirname "$file")"
   if [ -f "$file" ] && grep -q "$key" "$file" 2>/dev/null; then
-    ok "$key already in $file"
+    ok "$key already in $(basename "$file")"
     return
   fi
-  cat >> "$file" <<EOF
+  printf '\n[mcp_servers.%s]\ncommand = "%s"\nargs = %s\n' "$key" "$cmd" "$args" >> "$file"
+  ok "Added $key to $(basename "$file")"
+}
 
-[mcp_servers.$key]
-command = "$cmd"
-args = $args
-EOF
-  ok "Added $key to $file"
+# ─── Skills helper — download skills to a target directory ───
+
+install_skills() {
+  local target="$1" tool_name="$2"
+  mkdir -p "$target"
+
+  # plugin/skill pairs — format: "plugin-name/skill-name"
+  local SKILL_DIRS=(
+    "gitlab-scrum/gitlab-scrum"
+    "gitlab-scrum/gitlab-sprint"
+    "gitlab-scrum/gitlab-board"
+    "gitlab-scrum/gitlab-wiki"
+    "ai-dispatch/ai-dispatch"
+    "ai-dispatch/ai-dispatch-setup"
+    "autoresearch/autoresearch"
+  )
+
+  for skill_path in "${SKILL_DIRS[@]}"; do
+    local plugin="${skill_path%%/*}"
+    local skill="${skill_path#*/}"
+    local skill_dir="$target/$skill"
+    local skill_file="$skill_dir/SKILL.md"
+
+    if [ -f "$skill_file" ]; then
+      ok "$skill already installed"
+      continue
+    fi
+
+    mkdir -p "$skill_dir"
+    # Download SKILL.md (try uppercase first, then lowercase)
+    local url="${REPO_RAW}/plugins/${plugin}/skills/${skill}/SKILL.md"
+    local url_lower="${REPO_RAW}/plugins/${plugin}/skills/${skill}/skill.md"
+    if curl -fsSL "$url" -o "$skill_file" 2>/dev/null || curl -fsSL "$url_lower" -o "$skill_file" 2>/dev/null; then
+      ok "$skill installed"
+    else
+      skip "$skill download failed"
+      rm -rf "$skill_dir" 2>/dev/null
+    fi
+  done
 }
 
 # ─── Per-tool setup ───
-# Each tool gets:
-#   - talon-browser MCP (browser control via Chrome DevTools)
-# Claude Code also gets:
-#   - All plugins (browser, computer-use, ai-dispatch, gitlab-scrum, autoresearch)
 
 setup_codex() {
   head "Codex"
+  # MCP
   add_toml_mcp "$HOME/.codex/config.toml" "talon-browser" "npx" '["-y", "'"${MCP_PKG}"'"]'
+  # Skills — Codex reads ~/.agents/skills/ and .agents/skills/
+  info "Installing skills to ~/.agents/skills/"
+  install_skills "$HOME/.agents/skills" "codex"
 }
 
 setup_cursor() {
   head "Cursor"
+  # MCP
   add_json_mcp "$HOME/.cursor/mcp.json" "talon-browser" "npx" '["-y", "'"${MCP_PKG}"'"]'
+  # Skills — Cursor reads ~/.agents/skills/ (shared) and ~/.cursor/skills/
+  info "Installing skills to ~/.agents/skills/"
+  install_skills "$HOME/.agents/skills" "cursor"
 }
 
 setup_windsurf() {
   head "Windsurf"
+  # MCP
   add_json_mcp "$HOME/.windsurf/mcp.json" "talon-browser" "npx" '["-y", "'"${MCP_PKG}"'"]'
+  # Skills — Windsurf reads ~/.agents/skills/ and ~/.windsurf/skills/
+  info "Installing skills to ~/.agents/skills/"
+  install_skills "$HOME/.agents/skills" "windsurf"
 }
 
 setup_gemini() {
   head "Gemini CLI"
+  # MCP
   add_json_mcp "$HOME/.gemini/settings.json" "talon-browser" "npx" '["-y", "'"${MCP_PKG}"'"]'
+  # Gemini uses extensions or commands, not .agents/skills
+  # Install as custom commands
+  local cmd_dir="$HOME/.gemini/commands"
+  mkdir -p "$cmd_dir"
+  for skill in gitlab-scrum gitlab-sprint gitlab-board gitlab-wiki; do
+    local cmd_file="$cmd_dir/${skill}.toml"
+    if [ -f "$cmd_file" ]; then
+      ok "$skill command already exists"
+      continue
+    fi
+    local url="${REPO_RAW}/plugins/gitlab-scrum/skills/${skill}/skill.md"
+    local content
+    content=$(curl -fsSL "$url" 2>/dev/null | sed '1,/^---$/d; /^---$/,$!d; /^---$/d') || continue
+    cat > "$cmd_file" <<TOML
+description = "Talon: ${skill} — GitLab Scrum skill"
+prompt = """
+${content}
+
+User request: {{args}}
+"""
+TOML
+    ok "$skill command installed"
+  done
 }
 
 setup_claude() {
@@ -92,97 +157,19 @@ setup_claude() {
     ok "Marketplace already added"
   fi
 
-  # Fetch available plugins from marketplace
-  MARKETPLACE_URL="${REPO}/.claude-plugin/marketplace.json"
-  PLUGINS=$(curl -fsSL "$MARKETPLACE_URL" 2>/dev/null | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-for p in data.get('plugins', []):
-    print(p['name'] + '|' + p['description'])
-" 2>/dev/null)
+  # Fetch plugin list
+  PLUGIN_NAMES=$(curl -fsSL "${REPO_RAW}/.claude-plugin/marketplace.json" 2>/dev/null | \
+    python3 -c "import sys,json; [print(p['name']) for p in json.load(sys.stdin).get('plugins',[])]" 2>/dev/null)
+  [ -z "$PLUGIN_NAMES" ] && PLUGIN_NAMES="web computer-use ai-dispatch autoresearch gitlab-scrum"
 
-  if [ -z "$PLUGINS" ]; then
-    PLUGINS="web|Browser control
-computer-use|Desktop automation
-ai-dispatch|Multi-backend AI routing
-autoresearch|Autonomous research loop
-gitlab-scrum|GitLab Scrum management"
-  fi
-
-  # Checkbox select plugins
-  IFS=$'\n' read -r -d '' -a PLUGIN_LIST <<< "$PLUGINS" || true
-  PLUGIN_NUM=${#PLUGIN_LIST[@]}
-
-  if [ "$PLUGIN_NUM" -gt 0 ] && { [ -t 0 ] || [ -e /dev/tty ]; }; then
-    echo ""
-    echo -e "  ${B}Select plugins to install:${R} ${D}(↑↓ Space Enter)${R}"
-
-    declare -A P_CHECKED
-    declare -a P_NAMES P_DESCS
-    for i in "${!PLUGIN_LIST[@]}"; do
-      P_NAMES[$i]="${PLUGIN_LIST[$i]%%|*}"
-      P_DESCS[$i]="${PLUGIN_LIST[$i]#*|}"
-      P_CHECKED[${P_NAMES[$i]}]=1
-    done
-    P_CURSOR=0
-
-    draw_plugins() {
-      for i in "${!P_NAMES[@]}"; do
-        local name="${P_NAMES[$i]}"
-        local desc="${P_DESCS[$i]}"
-        local box="[ ]"
-        [ "${P_CHECKED[$name]}" = "1" ] && box="${G}[x]${R}"
-        if [ "$i" -eq "$P_CURSOR" ]; then
-          echo -e "    ${C}▸${R} ${box} ${B}${name}${R} ${D}${desc}${R}"
-        else
-          echo -e "      ${box} ${name} ${D}${desc}${R}"
-        fi
-      done
-      echo -e "    ${D}↑↓ move  Space toggle  Enter confirm${R}"
-    }
-
-    draw_plugins
-    P_LINES=$((PLUGIN_NUM + 1))
-
-    while true; do
-      IFS= read -rsn1 key < /dev/tty 2>/dev/null || break
-      if [[ "$key" == $'\x1b' ]]; then
-        read -rsn2 rest < /dev/tty 2>/dev/null || break
-        case "$rest" in
-          '[A') P_CURSOR=$(( (P_CURSOR - 1 + PLUGIN_NUM) % PLUGIN_NUM )) ;;
-          '[B') P_CURSOR=$(( (P_CURSOR + 1) % PLUGIN_NUM )) ;;
-        esac
-      elif [[ "$key" == " " ]]; then
-        local name="${P_NAMES[$P_CURSOR]}"
-        [ "${P_CHECKED[$name]}" = "1" ] && P_CHECKED[$name]=0 || P_CHECKED[$name]=1
-      elif [[ "$key" == "" ]]; then
-        break
-      fi
-      printf "\033[${P_LINES}A"
-      draw_plugins
-    done
-
-    # Install selected
-    for name in "${P_NAMES[@]}"; do
-      if [ "${P_CHECKED[$name]}" = "1" ]; then
-        if claude plugin list 2>/dev/null | grep -q "${name}@gettalon-talon-plugins"; then
-          ok "$name already installed"
-        else
-          claude plugin install "${name}@gettalon-talon-plugins" 2>/dev/null && ok "$name installed" || info "$name — run: /plugin install ${name}@gettalon-talon-plugins"
-        fi
-      fi
-    done
-  else
-    # Non-interactive: install all
-    for entry in "${PLUGIN_LIST[@]}"; do
-      local name="${entry%%|*}"
-      if claude plugin list 2>/dev/null | grep -q "${name}@gettalon-talon-plugins"; then
-        ok "$name already installed"
-      else
-        claude plugin install "${name}@gettalon-talon-plugins" 2>/dev/null && ok "$name installed" || info "$name — run: /plugin install ${name}@gettalon-talon-plugins"
-      fi
-    done
-  fi
+  # Install plugins
+  for plugin in $PLUGIN_NAMES; do
+    if claude plugin list 2>/dev/null | grep -q "${plugin}@gettalon-talon-plugins"; then
+      ok "$plugin already installed"
+    else
+      claude plugin install "${plugin}@gettalon-talon-plugins" 2>/dev/null && ok "$plugin installed" || info "$plugin — run: /plugin install ${plugin}@gettalon-talon-plugins"
+    fi
+  done
   info "Run /reload-plugins in Claude Code to activate"
 }
 
@@ -196,7 +183,7 @@ declare -A DETECTED
 command -v claude &>/dev/null && DETECTED[claude]=1
 
 echo -e "\n${B}${C}Talon Setup${R}"
-echo -e "${D}Browser MCP: ${MCP_PKG}${R}"
+echo -e "${D}MCP: ${MCP_PKG} | Skills: .agents/skills/ standard${R}"
 
 head "Detected Tools"
 ALL_TOOLS=(codex cursor windsurf gemini claude)
@@ -206,15 +193,15 @@ for tool in "${ALL_TOOLS[@]}"; do
     ok "$tool"
     detected_list+=("$tool")
   else
-    skip "$tool (not found)"
+    skip "$tool"
   fi
 done
 
 echo ""
-echo -e "${D}MCP plugins (Codex/Cursor/Windsurf/Gemini):${R}"
-info "  talon-browser — Chrome browser control (15 tools)"
-echo -e "${D}Claude Code plugins (skills + MCP):${R}"
-info "  web, computer-use, ai-dispatch, gitlab-scrum, autoresearch"
+echo -e "${D}Each tool gets:${R}"
+info "  MCP:    talon-browser (Chrome DevTools, 15 tools)"
+info "  Skills: gitlab-scrum, ai-dispatch, autoresearch"
+info "  Claude Code also gets: computer-use + plugin marketplace"
 
 # ─── Handle CLI arg or interactive ───
 
@@ -228,13 +215,13 @@ if [ -n "$TARGET" ]; then
     windsurf) setup_windsurf ;;
     gemini)  setup_gemini ;;
     claude)  setup_claude ;;
-    *) echo -e "${RED}Unknown: $TARGET${R}"; echo "Usage: setup.sh [all|codex|cursor|windsurf|gemini|claude]"; exit 1 ;;
+    *) echo -e "${RED}Unknown: $TARGET${R}"; exit 1 ;;
   esac
 elif [ ${#detected_list[@]} -eq 0 ]; then
-  echo -e "\n${Y}No tools detected. Setting up all configs anyway.${R}"
+  echo -e "\n${Y}No tools detected. Setting up all.${R}"
   for t in "${ALL_TOOLS[@]}"; do "setup_$t"; done
 else
-  # Checkbox: select tools
+  # Checkbox select
   MENU_ITEMS=("All" "${ALL_TOOLS[@]}")
   MENU_NUM=${#MENU_ITEMS[@]}
   declare -A CHECKED
@@ -274,7 +261,7 @@ else
   }
 
   if [ -t 0 ] || [ -e /dev/tty ]; then
-    echo -e "\n${B}Select tools to configure:${R}"
+    echo -e "\n${B}Select tools:${R}"
     draw_checkboxes
     LINES_DRAWN=$((MENU_NUM + 1))
     while true; do
@@ -299,11 +286,11 @@ else
 fi
 
 head "Done!"
-ok "MCP server auto-starts when your tool connects"
+ok "MCP + Skills configured"
 echo -e "${D}  Config locations:${R}"
-info "  Codex:    ~/.codex/config.toml"
-info "  Cursor:   ~/.cursor/mcp.json"
-info "  Windsurf: ~/.windsurf/mcp.json"
-info "  Gemini:   ~/.gemini/settings.json"
-info "  Claude:   ~/.claude/plugins/"
+info "  Codex:    ~/.codex/config.toml + ~/.agents/skills/"
+info "  Cursor:   ~/.cursor/mcp.json + ~/.agents/skills/"
+info "  Windsurf: ~/.windsurf/mcp.json + ~/.agents/skills/"
+info "  Gemini:   ~/.gemini/settings.json + ~/.gemini/commands/"
+info "  Claude:   ~/.claude/plugins/ (full plugin system)"
 echo ""
