@@ -6,7 +6,7 @@
   "license": "MIT",
   "talon": {
     "plugin": true,
-    "skills": ["skills/ai-dispatch"],
+    "skills": ["skills/ai-dispatch", "skills/ai-dispatch-setup"],
     "scripts": ["scripts/dispatch.sh", "scripts/check-dispatch.sh", "scripts/setup.sh"],
     "setup": "scripts/setup.sh"
   }
