@@ -1,12 +1,13 @@
 {
   "name": "ai-dispatch",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Dispatch subagents to multiple AI backends (GLM, Doubao, DeepSeek, Kimi, MiniMax). Simple: dispatch ark-code \"prompt\"",
   "author": "Talon",
   "license": "MIT",
   "talon": {
     "plugin": true,
     "skills": ["skills/ai-dispatch"],
-    "scripts": ["scripts/dispatch.sh", "scripts/check-dispatch.sh"]
+    "scripts": ["scripts/dispatch.sh", "scripts/check-dispatch.sh", "scripts/setup.sh"],
+    "setup": "scripts/setup.sh"
   }
 }

@@ -1,0 +1,39 @@
+{
+  "backends": {
+    "glm": {
+      "description": "GLM-5 via z.ai — Chinese language, translation",
+      "env": {
+        "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+        "ANTHROPIC_AUTH_TOKEN": "YOUR_TOKEN_HERE"
+      },
+      "models": {
+        "opus": "glm-5",
+        "sonnet": "glm-5",
+        "haiku": "glm-4.7-air"
+      }
+    },
+    "ark": {
+      "description": "Doubao Seed 2.0 via Volcengine Ark — Coding, fast",
+      "env": {
+        "ANTHROPIC_BASE_URL": "https://ark.cn-beijing.volces.com/api/coding",
+        "ANTHROPIC_API_KEY": "YOUR_API_KEY_HERE",
+        "OPENAI_BASE_URL": "https://ark.cn-beijing.volces.com/api/coding/v3"
+      },
+      "models": {
+        "opus": "ark-code-latest",
+        "sonnet": "ark-code-latest",
+        "haiku": "ark-code-latest"
+      },
+      "model_aliases": {
+        "kimi": "kimi-k2.5",
+        "minimax": "minimax-m2.5",
+        "glm": "glm-4.7",
+        "deepseek": "deepseek-v3.2",
+        "code": "doubao-seed-2.0-code",
+        "pro": "doubao-seed-2.0-pro",
+        "lite": "doubao-seed-2.0-lite",
+        "auto": "auto"
+      }
+    }
+  }
+}

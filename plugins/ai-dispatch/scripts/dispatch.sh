@@ -1,120 +1,130 @@
 #!/usr/bin/env bash
-# AI model dispatch - run Claude Code or Codex against any backend
-# Usage: dispatch.sh <backend> <tool> [args...]
-#   dispatch.sh ark claude -p "implement binary search"
-#   dispatch.sh ark codex "implement binary search"
-#   dispatch.sh glm claude -p "translate to Chinese: hello"
-#   dispatch.sh --list                # list backends
-#   dispatch.sh --models <backend>    # list models for a backend
+# AI model dispatch — run Claude Code or Codex against any backend
+# Config: ~/.config/ai-dispatch/config.json
+#
+# Usage:
+#   dispatch <backend> "prompt"                    # simple mode
+#   dispatch <backend> claude [args...] "prompt"   # explicit mode
+#   dispatch <backend> codex "prompt"              # codex mode
+#   dispatch --list                                # list backends
+#   dispatch --models <backend>                    # list models
 
 set -euo pipefail
 
-# --- Backend configs ---
+CONFIG_FILE="${AI_DISPATCH_CONFIG:-$HOME/.config/ai-dispatch/config.json}"
+DISPATCH_REGISTRY="/tmp/ark-dispatches.jsonl"
+SCHEMA='{"type":"object","properties":{"summary":{"type":"string"},"changed_files":{"type":"array","items":{"type":"string"}},"findings":{"type":"array","items":{"type":"string"}}},"required":["summary","changed_files","findings"]}'
+
+# --- Config reader (uses python3 for JSON parsing) ---
+
+read_config() {
+  if [[ ! -f "$CONFIG_FILE" ]]; then
+    echo "Config not found: $CONFIG_FILE" >&2
+    echo "Copy config.example.json to ~/.config/ai-dispatch/config.json and add your credentials." >&2
+    return 1
+  fi
+}
+
 configure_backend() {
-  case "$1" in
-    glm)
-      export ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic
-      export ANTHROPIC_AUTH_TOKEN=6e73e4511453444b8b24aa11519f119c.V1tZ2uCm6ThbH0sf
-      export ANTHROPIC_DEFAULT_OPUS_MODEL=glm-5
-      export ANTHROPIC_DEFAULT_SONNET_MODEL=glm-5
-      export ANTHROPIC_DEFAULT_HAIKU_MODEL=glm-4.7-air
-      export CLAUDE_CODE_SUBAGENT_MODEL=glm-5
-      ;;
-    ark)
-      export ANTHROPIC_BASE_URL=https://ark.cn-beijing.volces.com/api/coding
-      export ANTHROPIC_API_KEY=68cce044-38ad-4b77-9263-ca22a0880119
-      export ANTHROPIC_AUTH_TOKEN="$ANTHROPIC_API_KEY"
-      export ANTHROPIC_DEFAULT_OPUS_MODEL=ark-code-latest
-      export ANTHROPIC_DEFAULT_SONNET_MODEL=ark-code-latest
-      export ANTHROPIC_DEFAULT_HAIKU_MODEL=ark-code-latest
-      export CLAUDE_CODE_SUBAGENT_MODEL=ark-code-latest
-      export OPENAI_BASE_URL=https://ark.cn-beijing.volces.com/api/coding/v3
-      export OPENAI_API_KEY="$ANTHROPIC_API_KEY"
-      ;;
-    ark-*)
-      local model_prefix="${1#ark-}"
-      export ANTHROPIC_BASE_URL=https://ark.cn-beijing.volces.com/api/coding
-      export ANTHROPIC_API_KEY=68cce044-38ad-4b77-9263-ca22a0880119
-      export ANTHROPIC_AUTH_TOKEN="$ANTHROPIC_API_KEY"
-      export OPENAI_BASE_URL=https://ark.cn-beijing.volces.com/api/coding/v3
-      export OPENAI_API_KEY="$ANTHROPIC_API_KEY"
-      # Known models on Ark coding API (not all appear in /models endpoint)
-      local model_id=""
-      case "$model_prefix" in
-        kimi|kimi-k2.5|kimi-k2)       model_id="kimi-k2.5" ;;
-        minimax|minimax-m2.5)         model_id="minimax-m2.5" ;;
-        glm|glm-4.7)                  model_id="glm-4.7" ;;
-        deepseek|deepseek-v3.2)       model_id="deepseek-v3.2" ;;
-        seed-code|doubao-seed-code)   model_id="doubao-seed-code" ;;
-        code|doubao-seed-2.0-code)    model_id="doubao-seed-2.0-code" ;;
-        pro|doubao-seed-2.0-pro)      model_id="doubao-seed-2.0-pro" ;;
-        lite|doubao-seed-2.0-lite)    model_id="doubao-seed-2.0-lite" ;;
-        auto)                         model_id="auto" ;;
-        *)
-          # Fallback: resolve from Ark API
-          model_id=$(curl -s https://ark.cn-beijing.volces.com/api/v3/models \
-            -H "Authorization: Bearer $ANTHROPIC_API_KEY" \
-            | python3 -c "
-import json,sys
-prefix='$model_prefix'
-d=json.load(sys.stdin)
-models=[m for m in d.get('data',[]) if m.get('status') not in ('Shutdown','Retiring') and m.get('domain','') not in ('VideoGeneration','ImageGeneration','Router') and prefix in m['id']]
-models.sort(key=lambda x: x['id'], reverse=True)
-print(models[0]['id'] if models else '')
-" 2>/dev/null)
-          ;;
-      esac
-      [[ -z "$model_id" ]] && { echo "No Ark model matching '$model_prefix'" >&2; return 1; }
-      export ANTHROPIC_DEFAULT_OPUS_MODEL="$model_id"
-      export ANTHROPIC_DEFAULT_SONNET_MODEL="$model_id"
-      export ANTHROPIC_DEFAULT_HAIKU_MODEL="$model_id"
-      export CLAUDE_CODE_SUBAGENT_MODEL="$model_id"
-      ;;
-    *)
-      return 1
-      ;;
-  esac
+  read_config || return 1
+  local backend="$1"
+
+  # Check for ark-<model> pattern
+  local base_backend="$backend"
+  local model_alias=""
+  if [[ "$backend" == *-* ]]; then
+    base_backend="${backend%%-*}"
+    # Try exact match first, then fall back to base + alias
+    if ! python3 -c "import json; d=json.load(open('$CONFIG_FILE')); assert '$backend' in d['backends']" 2>/dev/null; then
+      model_alias="${backend#*-}"
+      # Check if base backend exists
+      python3 -c "import json; d=json.load(open('$CONFIG_FILE')); assert '$base_backend' in d['backends']" 2>/dev/null || {
+        echo "Unknown backend: $backend" >&2
+        return 1
+      }
+    else
+      base_backend="$backend"
+      model_alias=""
+    fi
+  fi
+
+  # Export env vars from config
+  eval "$(python3 -c "
+import json, os
+cfg = json.load(open('$CONFIG_FILE'))
+backend = cfg['backends'].get('$base_backend', {})
+env = backend.get('env', {})
+models = backend.get('models', {})
+aliases = backend.get('model_aliases', {})
+
+# Export all env vars
+for k, v in env.items():
+    print(f'export {k}=\"{v}\"')
+
+# Set ANTHROPIC_AUTH_TOKEN from API_KEY if not set
+if 'ANTHROPIC_AUTH_TOKEN' not in env and 'ANTHROPIC_API_KEY' in env:
+    print(f'export ANTHROPIC_AUTH_TOKEN=\"{env[\"ANTHROPIC_API_KEY\"]}\"')
+
+# Set OPENAI_API_KEY from ANTHROPIC_API_KEY if OPENAI_BASE_URL is set
+if 'OPENAI_BASE_URL' in env and 'OPENAI_API_KEY' not in env and 'ANTHROPIC_API_KEY' in env:
+    print(f'export OPENAI_API_KEY=\"{env[\"ANTHROPIC_API_KEY\"]}\"')
+
+# Resolve model
+alias = '$model_alias'
+if alias and alias in aliases:
+    model = aliases[alias]
+    print(f'export ANTHROPIC_DEFAULT_OPUS_MODEL=\"{model}\"')
+    print(f'export ANTHROPIC_DEFAULT_SONNET_MODEL=\"{model}\"')
+    print(f'export ANTHROPIC_DEFAULT_HAIKU_MODEL=\"{model}\"')
+    print(f'export CLAUDE_CODE_SUBAGENT_MODEL=\"{model}\"')
+elif not alias:
+    print(f'export ANTHROPIC_DEFAULT_OPUS_MODEL=\"{models.get(\"opus\", \"\")}\"')
+    print(f'export ANTHROPIC_DEFAULT_SONNET_MODEL=\"{models.get(\"sonnet\", \"\")}\"')
+    print(f'export ANTHROPIC_DEFAULT_HAIKU_MODEL=\"{models.get(\"haiku\", \"\")}\"')
+    print(f'export CLAUDE_CODE_SUBAGENT_MODEL=\"{models.get(\"opus\", \"\")}\"')
+else:
+    # Unknown alias — use as model ID directly
+    print(f'export ANTHROPIC_DEFAULT_OPUS_MODEL=\"{alias}\"')
+    print(f'export ANTHROPIC_DEFAULT_SONNET_MODEL=\"{alias}\"')
+    print(f'export ANTHROPIC_DEFAULT_HAIKU_MODEL=\"{alias}\"')
+    print(f'export CLAUDE_CODE_SUBAGENT_MODEL=\"{alias}\"')
+" 2>/dev/null)" || return 1
 }
 
 list_backends() {
-  cat <<'EOF'
-glm          GLM-5 via z.ai             Chinese language, translation
-ark          Doubao Seed 2.0 via Ark    Coding, general tasks, fast
-ark-doubao   Doubao Seed 2.0 Pro        General reasoning, fast
-ark-code     Doubao Seed 2.0 Code       Code generation, optimized
-ark-*        Any model via Ark           ark-glm, ark-deepseek, ark-kimi
-                                         ark-minimax, ark-auto
-EOF
+  read_config || return 1
+  python3 -c "
+import json
+cfg = json.load(open('$CONFIG_FILE'))
+for name, b in cfg['backends'].items():
+    desc = b.get('description', '')
+    aliases = ', '.join(b.get('model_aliases', {}).keys())
+    print(f'{name:<14s} {desc}')
+    if aliases:
+        print(f'  {name}-*{\" \":8s} Aliases: {aliases}')
+"
 }
 
 list_models() {
   local backend="$1"
-  case "$backend" in
-    ark|ark-*)
-      curl -s https://ark.cn-beijing.volces.com/api/v3/models \
-        -H "Authorization: Bearer 68cce044-38ad-4b77-9263-ca22a0880119" \
-        | python3 -c "
-import json,sys
-d=json.load(sys.stdin)
-for m in sorted(d.get('data',[]), key=lambda x:x.get('name','')):
-  if m.get('status') not in ('Shutdown','Retiring'):
-    print(f\"{m['id']:50s} {m.get('domain',''):20s} {m.get('name','')}\")
+  read_config || return 1
+  python3 -c "
+import json
+cfg = json.load(open('$CONFIG_FILE'))
+b = cfg['backends'].get('$backend', {})
+models = b.get('models', {})
+aliases = b.get('model_aliases', {})
+print('Default models:')
+for tier, model in models.items():
+    print(f'  {tier:<8s} {model}')
+if aliases:
+    print('Aliases (use as ${backend}-<alias>):')
+    for alias, model in aliases.items():
+        print(f'  {alias:<20s} → {model}')
 "
-      ;;
-    *)
-      echo "Model listing only available for ark backends"
-      ;;
-  esac
-}
-
-# Print exports for sourcing into current shell
-print_env() {
-  configure_backend "$1" || return 1
-  env | grep -E '^(ANTHROPIC_|OPENAI_|CLAUDE_CODE_)' | sed 's/^/export /'
 }
 
 # --- Task Registry ---
-DISPATCH_REGISTRY="/tmp/ark-dispatches.jsonl"
 
 register_dispatch() {
   local backend="$1" tool="$2" prompt="$3"
@@ -127,20 +137,6 @@ register_dispatch() {
   echo "$id"
 }
 
-list_dispatches() {
-  [[ ! -f "$DISPATCH_REGISTRY" ]] && { echo "No dispatches yet"; return; }
-  echo "ID                    Backend        Status   Prompt"
-  echo "----                  -------        ------   ------"
-  while IFS= read -r line; do
-    id=$(echo "$line" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['id'])" 2>/dev/null)
-    backend=$(echo "$line" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['backend'])" 2>/dev/null)
-    pid=$(echo "$line" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['pid'])" 2>/dev/null)
-    prompt=$(echo "$line" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['prompt'][:60])" 2>/dev/null)
-    if kill -0 "$pid" 2>/dev/null; then status="running"; else status="done"; fi
-    printf "%-22s %-14s %-8s %s\n" "$id" "$backend" "$status" "$prompt"
-  done < "$DISPATCH_REGISTRY"
-}
-
 # --- Main ---
 case "${1:-}" in
   --list)
@@ -148,21 +144,24 @@ case "${1:-}" in
     exit 0
     ;;
   --dispatches)
-    list_dispatches
+    [[ ! -f "$DISPATCH_REGISTRY" ]] && { echo "No dispatches yet"; exit 0; }
+    while IFS= read -r line; do echo "$line"; done < "$DISPATCH_REGISTRY"
     exit 0
     ;;
   --models)
-    list_models "${2:?Usage: dispatch.sh --models <backend>}"
+    list_models "${2:?Usage: dispatch --models <backend>}"
     exit 0
     ;;
   --env)
-    print_env "${2:?Usage: dispatch.sh --env <backend>}"
+    configure_backend "${2:?Usage: dispatch --env <backend>}" || exit 1
+    env | grep -E '^(ANTHROPIC_|OPENAI_|CLAUDE_CODE_)' | sed 's/^/export /'
     exit $?
     ;;
   "")
-    echo "Usage: dispatch.sh <backend> <tool> [args...]"
-    echo "       dispatch.sh --list"
-    echo "       dispatch.sh --models <backend>"
+    echo "Usage: dispatch <backend> \"prompt\""
+    echo "       dispatch <backend> claude [args...]"
+    echo "       dispatch --list"
+    echo "       dispatch --models <backend>"
     exit 1
     ;;
 esac
@@ -172,11 +171,9 @@ shift 1
 
 configure_backend "$BACKEND" || {
   echo "Unknown backend: $BACKEND" >&2
-  echo "Run: dispatch.sh --list" >&2
+  echo "Run: dispatch --list" >&2
   exit 1
 }
-
-SCHEMA='{"type":"object","properties":{"summary":{"type":"string"},"changed_files":{"type":"array","items":{"type":"string"}},"findings":{"type":"array","items":{"type":"string"}}},"required":["summary","changed_files","findings"]}'
 
 # Detect mode: if first arg is a tool name, use explicit mode; otherwise treat as prompt
 TOOL="${1:-}"
@@ -185,12 +182,10 @@ case "$TOOL" in
     shift
     ;;
   *)
-    # Simple mode: dispatch.sh <backend> "prompt"
-    # All remaining args are the prompt
+    # Simple mode: dispatch <backend> "prompt"
     PROMPT="$*"
     if [[ -z "$PROMPT" ]]; then
-      echo "Usage: dispatch.sh <backend> \"prompt\"" >&2
-      echo "       dispatch.sh <backend> claude [args...]" >&2
+      echo "Usage: dispatch <backend> \"prompt\"" >&2
       exit 1
     fi
     DISPATCH_ID=$(register_dispatch "$BACKEND" "claude" "$PROMPT")
@@ -211,14 +206,6 @@ case "$TOOL" in
     exec claude "$@"
     ;;
   claude-interactive)
-    # Interactive mode: creates a named pipe so you can send follow-up messages.
-    # Usage: dispatch.sh <backend> claude-interactive [claude args...]
-    # Returns: pipe path. Write JSON lines to it, read output from stdout.
-    #
-    # Start:  PIPE=$(dispatch.sh ark claude-interactive --output-format stream-json ...)
-    # Send:   echo '{"type":"user","message":{"role":"user","content":"hello"}}' > $PIPE
-    # Follow: echo '{"type":"user","message":{"role":"user","content":"also X"}}' > $PIPE
-    # Stop:   echo '{"type":"stop"}' > $PIPE
     PIPE_DIR="/tmp/ark-pipes"
     mkdir -p "$PIPE_DIR"
     PIPE_ID="$$-$(date +%s)"
@@ -226,25 +213,15 @@ case "$TOOL" in
     PIPE_OUT="$PIPE_DIR/out-$PIPE_ID"
     mkfifo "$PIPE_IN"
     touch "$PIPE_OUT"
-
-    # Keep the pipe open with a background cat (otherwise first write closes it)
     ( sleep 86400 > "$PIPE_IN" ) &
     KEEP_OPEN_PID=$!
-
-    # Run claude reading from the pipe, writing to output file
     claude --dangerously-skip-permissions \
       --output-format stream-json \
       --input-format stream-json \
       "$@" < "$PIPE_IN" > "$PIPE_OUT" 2>&1 &
     CLAUDE_PID=$!
-
-    # Cleanup on exit
     trap "kill $KEEP_OPEN_PID $CLAUDE_PID 2>/dev/null; rm -f '$PIPE_IN' '$PIPE_OUT'" EXIT
-
-    # Return pipe path and PID so caller can send messages and read output
     echo "{\"pipe\":\"$PIPE_IN\",\"output\":\"$PIPE_OUT\",\"pid\":$CLAUDE_PID}"
-
-    # Wait for claude to finish
     wait $CLAUDE_PID 2>/dev/null
     kill $KEEP_OPEN_PID 2>/dev/null
     ;;
