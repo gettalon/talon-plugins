@@ -1,133 +1,121 @@
 #!/usr/bin/env python3
-"""Render stream-json output in real-time, human-readable format.
-Formats tool_use, tool_result, text, thinking, and result events."""
+"""Render dispatch output.
+Foreground: collapsed SubAgentCard with last 5 tools.
+Background: all tools, no colors."""
 import json, sys, os
 
-tool_count = 0
-text_count = 0
-pending_tools = {}  # call_id → tool_name
-start_time = None
+tools = []
+texts = []
+result_data = None
+has_error = False
 
-# Colors (ANSI)
-DIM = "\033[2m"
-BOLD = "\033[1m"
-GREEN = "\033[32m"
-YELLOW = "\033[33m"
-RED = "\033[31m"
-CYAN = "\033[36m"
-RESET = "\033[0m"
+# No ANSI colors in file output
+is_tty = sys.stdout.isatty()
+if is_tty:
+    DIM, BOLD, GREEN, YELLOW, RED, RESET = "\033[2m", "\033[1m", "\033[32m", "\033[33m", "\033[31m", "\033[0m"
+else:
+    DIM = BOLD = GREEN = YELLOW = RED = RESET = ""
 
-# Disable colors if not a tty
-if not sys.stderr.isatty():
-    DIM = BOLD = GREEN = YELLOW = RED = CYAN = RESET = ""
+SHOW_LAST = 5
 
-def truncate(s, n=120):
-    s = s.replace("\n", " ")
+def trunc(s, n=80):
+    s = str(s).replace("\n", " ").strip()
     return s[:n] + "…" if len(s) > n else s
+
+def fmt_tool(name, args):
+    if not isinstance(args, dict):
+        return f"{name}({trunc(str(args), 60)})"
+    for key in ["command", "file_path", "pattern", "prompt", "query", "skill"]:
+        if key in args:
+            if key == "pattern":
+                s = f'"{trunc(args[key], 40)}"'
+                if "path" in args: s += f', {args["path"]}'
+                return f"{name}({s})"
+            return f"{name}({trunc(str(args[key]), 60)})"
+    keys = list(args.keys())[:2]
+    if keys:
+        return f"{name}({', '.join(f'{k}: {trunc(str(args[k]),30)}' for k in keys)})"
+    return f"{name}()"
 
 for line in sys.stdin:
     line = line.strip()
-    if not line:
-        continue
-    try:
-        e = json.loads(line)
-    except:
-        continue
+    if not line: continue
+    try: e = json.loads(line)
+    except: continue
 
     t = e.get("type", "")
 
     if t == "system":
         sub = e.get("subtype", "")
-        if sub == "init":
-            sid = e.get("session_id", "")[:12]
-            model = e.get("model", "")
-            print(f"┌─ {BOLD}Dispatch{RESET} {DIM}session={sid}…{RESET}", flush=True)
-        elif sub == "hook_started":
-            pass  # skip hooks
+        if sub == "api_retry":
+            n, d = e.get("attempt", "?"), e.get("retry_delay_ms", 0) / 1000
+            print(f"  ⟳ retry #{n} ({d:.0f}s)", flush=True)
+
+    elif t == "error":
+        msg = e.get("error", {}).get("message", e.get("message", str(e)))
+        has_error = True
+        result_data = {"summary": f"Error: {msg}"}
 
     elif t == "assistant":
-        content = e.get("message", {}).get("content", [])
-        for c in content:
-            ct = c.get("type", "")
-            if ct == "text":
-                text = c.get("text", "").strip()
-                if text:
-                    text_count += 1
-                    lines = text.split("\n")
-                    for tl in lines[:8]:
-                        print(f"│  {tl}", flush=True)
-                    if len(lines) > 8:
-                        print(f"│  {DIM}… +{len(lines)-8} lines{RESET}", flush=True)
-
-            elif ct == "tool_use":
-                tool_count += 1
+        for c in e.get("message", {}).get("content", []):
+            if c.get("type") == "tool_use":
                 name = c.get("name", c.get("tool_name", "?"))
-                call_id = c.get("id", c.get("call_id", ""))
-                args = c.get("input", {})
-                pending_tools[call_id] = name
-
-                # Format args summary
-                arg_summary = ""
-                if isinstance(args, dict):
-                    if "command" in args:
-                        arg_summary = truncate(args["command"], 80)
-                    elif "file_path" in args:
-                        arg_summary = args["file_path"]
-                    elif "pattern" in args:
-                        arg_summary = f'"{args["pattern"]}"'
-                        if "path" in args:
-                            arg_summary += f' in {args["path"]}'
-                    elif "old_string" in args:
-                        arg_summary = truncate(args["old_string"], 60)
-                    elif "content" in args and "file_path" in args:
-                        arg_summary = args["file_path"]
-                    else:
-                        keys = list(args.keys())[:3]
-                        arg_summary = ", ".join(f"{k}={truncate(str(args[k]),30)}" for k in keys)
-
-                print(f"│  {GREEN}●{RESET} {BOLD}{name}{RESET}{DIM}({arg_summary}){RESET}", flush=True)
-
-            elif ct == "thinking":
-                text = c.get("thinking", "").strip()
-                if text:
-                    first_line = text.split("\n")[0][:100]
-                    print(f"│  {CYAN}▸ Thinking{RESET} {DIM}{first_line}{RESET}", flush=True)
-
-    elif t == "user":
-        # Tool results
-        content = e.get("message", {}).get("content", [])
-        if isinstance(content, list):
-            for c in content:
-                if isinstance(c, dict) and c.get("type") == "tool_result":
-                    call_id = c.get("tool_use_id", "")
-                    tool_name = pending_tools.pop(call_id, "?")
-                    output = str(c.get("content", ""))
-                    is_error = c.get("is_error", False)
-
-                    if is_error:
-                        print(f"│    {RED}✗ {truncate(output, 100)}{RESET}", flush=True)
-                    elif len(output) > 200:
-                        print(f"│    {DIM}↳ {len(output)} chars{RESET}", flush=True)
-                    elif output.strip():
-                        lines = output.strip().split("\n")
-                        print(f"│    {DIM}↳ {truncate(lines[0], 100)}{RESET}", flush=True)
+                tools.append(fmt_tool(name, c.get("input", {})))
+                pass  # no live counter — Bash tool doesn't support \r
+            elif c.get("type") == "text":
+                text = c.get("text", "").strip()
+                if text: texts.append(text)
 
     elif t == "result":
         r = e.get("result", "")
-        print(f"├─ {BOLD}Result{RESET}", flush=True)
         try:
-            d = json.loads(r) if isinstance(r, str) else r
-            if isinstance(d, dict):
-                print(f"│  {d.get('summary', 'Done')}", flush=True)
-                files = d.get("changed_files", [])
-                if files:
-                    print(f"│  {GREEN}Changed: {', '.join(files)}{RESET}", flush=True)
-                for f in d.get("findings", [])[:5]:
-                    print(f"│  • {f[:100]}", flush=True)
-            else:
-                for tl in str(r).split("\n")[:5]:
-                    print(f"│  {tl[:100]}", flush=True)
+            result_data = json.loads(r) if isinstance(r, str) else r
+            if not isinstance(result_data, dict):
+                result_data = {"summary": str(r)[:200]}
         except:
-            for tl in str(r).split("\n")[:5]:
-                print(f"│  {tl[:100]}", flush=True)
-        print(f"└─ {tool_count} tools · {text_count} text blocks", flush=True)
+            result_data = {"summary": str(r)[:200]}
+
+
+# --- Output ---
+
+title = ""
+if result_data and isinstance(result_data, dict):
+    title = result_data.get("summary", "")
+if not title and texts:
+    title = trunc(texts[0].split("\n")[0], 80)
+title = title or "Dispatch"
+
+status = "failed" if has_error else "done"
+
+if is_tty:
+    # Foreground: collapsed, last 5 tools
+    print(f"  {BOLD}{title}{RESET}")
+    if tools:
+        shown = tools[-SHOW_LAST:]
+        skipped = len(tools) - SHOW_LAST
+        if skipped > 0:
+            print(f"  ⎿  {DIM}+{skipped} earlier tool uses{RESET}")
+        for t in shown:
+            print(f"  ⎿  {t}")
+    if result_data and isinstance(result_data, dict):
+        files = result_data.get("changed_files", [])
+        if files:
+            print(f"  {GREEN}Changed: {', '.join(files)}{RESET}")
+    print(f"  {DIM}{len(tools)} tools · {status}{RESET}")
+else:
+    # Background file: all tools, no colors
+    print(f"  {title}")
+    print(f"  ---")
+    for t in tools:
+        print(f"  ● {t}")
+    if result_data and isinstance(result_data, dict):
+        files = result_data.get("changed_files", [])
+        if files:
+            print(f"  Changed: {', '.join(files)}")
+        for f in result_data.get("findings", [])[:5]:
+            print(f"  • {trunc(f, 100)}")
+    print(f"  ---")
+    print(f"  {len(tools)} tools · {status}")
+
+if has_error:
+    sys.exit(1)

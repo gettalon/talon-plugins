@@ -192,14 +192,16 @@ case "$TOOL" in
     echo "[dispatch] $DISPATCH_ID ($BACKEND)" >&2
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     RENDERER="$SCRIPT_DIR/stream-render.py"
-    if [[ -t 1 && -f "$RENDERER" ]]; then
-      # Interactive terminal: render stream in real-time
+    RAW_LOG="/tmp/ark-dispatch-$$.jsonl"
+    if [[ -f "$RENDERER" ]]; then
+      # stdout: formatted (for Claude Code display)
+      # file: raw stream-json (for dcheck)
       claude -p --dangerously-skip-permissions \
         --output-format stream-json --verbose \
         --json-schema "$SCHEMA" \
-        "$PROMPT" 2>/dev/null | python3 "$RENDERER"
+        "$PROMPT" 2>/dev/null | tee "$RAW_LOG" | python3 "$RENDERER"
+      exit "${PIPESTATUS[0]}"
     else
-      # Non-interactive (background/pipe): raw stream-json
       exec claude -p --dangerously-skip-permissions \
         --output-format stream-json --verbose \
         --json-schema "$SCHEMA" \
