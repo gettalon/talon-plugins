@@ -59,7 +59,7 @@ draw_all() {
       echo -e "    ${box} ${t}${det} ${D}${label}${R}"
     fi
   done
-  echo -e "  ${D}↑↓ move  Tab switch section  Space toggle  Enter confirm${R}"
+  echo -e "  ${D}↑↓ move  Tab switch  Space toggle  Enter confirm  Esc exit${R}"
 }
 
 TOTAL_LINES=$((S_NUM + T_NUM + 4))  # headers + blank + hint
@@ -71,7 +71,14 @@ if { [ -t 0 ] || [ -e /dev/tty ]; } 2>/dev/null; then
   while true; do
     IFS= read -rsn1 key < /dev/tty 2>/dev/null || break
     if [[ "$key" == $'\x1b' ]]; then
-      read -rsn2 rest < /dev/tty 2>/dev/null || break
+      read -rsn1 -t 0.1 next < /dev/tty 2>/dev/null || next=""
+      if [[ "$next" == "" ]]; then
+        # Raw Esc — no follow-up = user pressed Esc
+        echo -e "\n${D}Cancelled.${R}"
+        exit 0
+      fi
+      read -rsn1 rest2 < /dev/tty 2>/dev/null || rest2=""
+      local rest="${next}${rest2}"
       case "$rest" in
         '[A') # Up
           if [ "$SECTION" -eq 0 ]; then
