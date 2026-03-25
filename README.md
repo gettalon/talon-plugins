@@ -5,33 +5,32 @@ Give Claude Code eyes and hands — control your browser and your computer. Open
 ## Quick Start
 
 ```bash
-# One command — detects your tools and configures everything
-npx @gettalon/cli setup
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/gettalon/talon-plugins/master/scripts/setup.sh | bash
+
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/gettalon/talon-plugins/master/scripts/setup.ps1 | iex
 ```
 
-This auto-configures Talon for every AI coding tool on your machine:
+This auto-configures Talon MCP server for every tool on your machine:
 
-| Tool | Config Location | How |
-|------|----------------|-----|
-| **Claude Code** | Plugin marketplace | `/plugin install browser-control@gettalon-talon-plugins` |
-| **Codex (OpenAI)** | `~/.codex/config.toml` | Auto-adds MCP server |
-| **Cursor** | `~/.cursor/mcp.json` | Auto-adds MCP server |
-| **Windsurf** | `~/.windsurf/mcp.json` | Auto-adds MCP server |
-| **Gemini CLI** | `~/.gemini/settings.json` | Auto-adds MCP server |
+| Tool | Config | What setup.sh does |
+|------|--------|-------------------|
+| **Codex** | `~/.codex/config.toml` | Adds `[mcp_servers.talon-browser]` |
+| **Cursor** | `~/.cursor/mcp.json` | Adds to `mcpServers` |
+| **Windsurf** | `~/.windsurf/mcp.json` | Adds to `mcpServers` |
+| **Gemini CLI** | `~/.gemini/settings.json` | Adds to `mcpServers` |
+| **Claude Code** | Plugin marketplace | Prints install commands |
 
-Or setup a specific tool:
+For Claude Code, run these after:
 ```bash
-npx @gettalon/cli setup claude    # Claude Code only
-npx @gettalon/cli setup codex     # Codex only
-npx @gettalon/cli setup cursor    # Cursor only
-npx @gettalon/cli setup windsurf  # Windsurf only
-npx @gettalon/cli setup gemini    # Gemini CLI only
-npx @gettalon/cli status          # Show detected tools
+/plugin marketplace add gettalon/talon-plugins
+/plugin install browser-control@gettalon-talon-plugins
+/reload-plugins
 ```
 
-Then load the Chrome extension and try it:
-```bash
-# Ask Claude to browse
+Then try it:
+```
 Navigate to https://example.com and tell me what's on the page
 Take a screenshot of the current tab
 Click the "Learn more" link
