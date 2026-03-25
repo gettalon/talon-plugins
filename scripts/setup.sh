@@ -56,10 +56,25 @@ setup_gemini()   { head "Gemini CLI"; add_json_mcp "$HOME/.gemini/settings.json"
 
 setup_claude() {
   head "Claude Code"
-  info "Run in Claude Code:"
-  info "  /plugin marketplace add gettalon/talon-plugins"
-  info "  /plugin install browser-control@gettalon-talon-plugins"
-  info "  /reload-plugins"
+  if ! command -v claude &>/dev/null; then
+    skip "claude CLI not found"
+    return
+  fi
+  # Add marketplace if not present
+  if ! claude plugin marketplace list 2>/dev/null | grep -q "gettalon-talon-plugins"; then
+    claude plugin marketplace add gettalon/talon-plugins 2>/dev/null && ok "Marketplace added" || info "Marketplace may already exist"
+  else
+    ok "Marketplace already added"
+  fi
+  # Install plugins
+  for plugin in browser-control computer-use ai-dispatch gitlab-scrum; do
+    if claude plugin list 2>/dev/null | grep -q "${plugin}@gettalon-talon-plugins"; then
+      ok "$plugin already installed"
+    else
+      claude plugin install "${plugin}@gettalon-talon-plugins" 2>/dev/null && ok "$plugin installed" || info "$plugin — install manually: /plugin install ${plugin}@gettalon-talon-plugins"
+    fi
+  done
+  info "Run /reload-plugins in Claude Code to activate"
 }
 
 # Detect tools
