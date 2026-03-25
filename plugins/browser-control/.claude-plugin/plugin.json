@@ -1,10 +1,17 @@
 {
-  "name": "browser-control",
+  "name": "talon-browser-control",
   "description": "Control Chrome browser via CDP. Navigate, click, fill forms, take screenshots, run JavaScript.",
   "version": "1.0.0",
-  "author": { "name": "Talon" },
+  "author": {
+    "name": "Talon"
+  },
   "homepage": "https://github.com/gettalon/talon-plugins",
   "repository": "https://github.com/gettalon/talon-plugins",
   "license": "MIT",
-  "keywords": ["browser", "chrome", "cdp", "automation"]
+  "keywords": [
+    "browser",
+    "chrome",
+    "cdp",
+    "automation"
+  ]
 }

@@ -1,10 +1,23 @@
 {
-  "name": "ai-dispatch",
+  "name": "talon-ai-dispatch",
   "description": "Dispatch subagents to multiple AI backends (GLM, Doubao, DeepSeek, Kimi, MiniMax). Simple: dispatch ark-code \"prompt\"",
   "version": "0.3.0",
-  "author": { "name": "Talon" },
+  "author": {
+    "name": "Talon"
+  },
   "homepage": "https://github.com/gettalon/talon-plugins",
   "repository": "https://github.com/gettalon/talon-plugins",
   "license": "MIT",
-  "keywords": ["ai", "dispatch", "subagent", "multi-backend", "glm", "doubao", "deepseek", "kimi", "minimax", "ark"]
+  "keywords": [
+    "ai",
+    "dispatch",
+    "subagent",
+    "multi-backend",
+    "glm",
+    "doubao",
+    "deepseek",
+    "kimi",
+    "minimax",
+    "ark"
+  ]
 }

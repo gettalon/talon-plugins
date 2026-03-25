@@ -1,12 +1,16 @@
 {
-  "name": "autoresearch",
+  "name": "talon-autoresearch",
   "version": "0.1.0",
-  "description": "Autonomous experiment loop — iteratively edit, test, measure, keep/discard. Inspired by Karpathy's autoresearch.",
+  "description": "Autonomous experiment loop \u2014 iteratively edit, test, measure, keep/discard. Inspired by Karpathy's autoresearch.",
   "author": "Talon",
   "license": "MIT",
   "talon": {
     "plugin": true,
-    "skills": ["skills/autoresearch"],
-    "scripts": ["scripts/autoresearch.sh"]
+    "skills": [
+      "skills/autoresearch"
+    ],
+    "scripts": [
+      "scripts/autoresearch.sh"
+    ]
   }
 }

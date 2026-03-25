@@ -1,6 +1,6 @@
 {
   "name": "@gettalon/mcp",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Standalone MCP server for Talon browser control via Chrome DevTools Protocol",
   "bin": {
     "talon-mcp": "./dist/index.js"
