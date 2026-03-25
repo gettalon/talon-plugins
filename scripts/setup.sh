@@ -104,45 +104,86 @@ elif [ ${#detected_list[@]} -eq 0 ]; then
   echo -e "\n${Y}No tools detected. Setting up all configs anyway.${R}"
   for t in "${ALL_TOOLS[@]}"; do "setup_$t"; done
 else
-  # Interactive — let user choose
-  echo ""
-  echo -e "${B}Setup options:${R}"
-  echo -e "  ${B}a${R}) All tools (default)"
-  echo -e "  ${B}d${R}) Detected only (${detected_list[*]})"
-  echo -e "  ${B}s${R}) Select individually"
-  echo ""
-  if [ -t 0 ]; then
-    # Interactive terminal
-    read -r -p "Choice [a/d/s] (default: a): " choice
-  elif [ -e /dev/tty ]; then
-    read -r -p "Choice [a/d/s] (default: a): " choice < /dev/tty
-  else
-    choice="a"
-  fi
-  choice="${choice:-a}"
+  # Checkbox multi-select: ↑/↓ move, Space toggle, Enter confirm
+  # "All" at top + individual tools. Detected = checked by default.
+  MENU_ITEMS=("All" "${ALL_TOOLS[@]}")
+  MENU_NUM=${#MENU_ITEMS[@]}
+  declare -A CHECKED
+  CHECKED[All]=1
+  for t in "${ALL_TOOLS[@]}"; do
+    [[ " ${detected_list[*]} " == *" $t "* ]] && CHECKED[$t]=1 || CHECKED[$t]=0
+  done
+  # If not all checked, uncheck "All"
+  all_on=1
+  for t in "${ALL_TOOLS[@]}"; do [ "${CHECKED[$t]}" != "1" ] && all_on=0; done
+  CHECKED[All]=$all_on
+  CURSOR=0
 
-  case "$choice" in
-    a|A)
-      for t in "${ALL_TOOLS[@]}"; do "setup_$t"; done
-      ;;
-    d|D)
-      for t in "${detected_list[@]}"; do "setup_$t"; done
-      ;;
-    s|S)
-      for t in "${ALL_TOOLS[@]}"; do
-        if [ -t 0 ]; then
-          read -r -p "  Setup $t? [Y/n]: " yn
-        elif [ -e /dev/tty ]; then
-          read -r -p "  Setup $t? [Y/n]: " yn < /dev/tty
-        else
-          yn="y"
-        fi
-        yn="${yn:-y}"
-        [[ "$yn" =~ ^[Yy] ]] && "setup_$t"
-      done
-      ;;
-    *) for t in "${ALL_TOOLS[@]}"; do "setup_$t"; done ;;
-  esac
+  draw_checkboxes() {
+    for i in "${!MENU_ITEMS[@]}"; do
+      local t="${MENU_ITEMS[$i]}"
+      local box="[ ]"
+      [ "${CHECKED[$t]}" = "1" ] && box="${G}[x]${R}"
+      local label="$t"
+      # Show detected marker
+      if [ "$t" != "All" ]; then
+        [[ " ${detected_list[*]} " == *" $t "* ]] && label="$t ${D}(detected)${R}" || label="$t"
+      fi
+      if [ "$i" -eq "$CURSOR" ]; then
+        echo -e "  ${C}▸${R} ${box} ${B}${label}${R}"
+      else
+        echo -e "    ${box} ${label}"
+      fi
+    done
+    echo -e "  ${D}↑↓ move  Space toggle  Enter confirm${R}"
+  }
+
+  toggle_item() {
+    local t="${MENU_ITEMS[$CURSOR]}"
+    if [ "$t" = "All" ]; then
+      # Toggle all
+      local new_val=1
+      [ "${CHECKED[All]}" = "1" ] && new_val=0
+      CHECKED[All]=$new_val
+      for tool in "${ALL_TOOLS[@]}"; do CHECKED[$tool]=$new_val; done
+    else
+      # Toggle individual
+      [ "${CHECKED[$t]}" = "1" ] && CHECKED[$t]=0 || CHECKED[$t]=1
+      # Update "All" state
+      local all_on=1
+      for tool in "${ALL_TOOLS[@]}"; do [ "${CHECKED[$tool]}" != "1" ] && all_on=0; done
+      CHECKED[All]=$all_on
+    fi
+  }
+
+  if [ -t 0 ] || [ -e /dev/tty ]; then
+    echo ""
+    echo -e "${B}Select tools to configure:${R}"
+    draw_checkboxes
+    LINES_DRAWN=$((MENU_NUM + 1))
+
+    while true; do
+      IFS= read -rsn1 key < /dev/tty 2>/dev/null || break
+      if [[ "$key" == $'\x1b' ]]; then
+        read -rsn2 rest < /dev/tty 2>/dev/null || break
+        case "$rest" in
+          '[A') CURSOR=$(( (CURSOR - 1 + MENU_NUM) % MENU_NUM )) ;;
+          '[B') CURSOR=$(( (CURSOR + 1) % MENU_NUM )) ;;
+        esac
+      elif [[ "$key" == " " ]]; then
+        toggle_item
+      elif [[ "$key" == "" ]]; then
+        break
+      fi
+      printf "\033[${LINES_DRAWN}A"
+      draw_checkboxes
+    done
+  fi
+
+  # Run setup for checked tools
+  for t in "${ALL_TOOLS[@]}"; do
+    [ "${CHECKED[$t]}" = "1" ] && "setup_$t"
+  done
 fi
 
 head "Done!"
