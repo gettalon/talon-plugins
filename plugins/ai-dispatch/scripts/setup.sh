@@ -42,11 +42,16 @@ GLM_DETECTED="${GLM_API_KEY:-}"
 OPENAI_DETECTED="${OPENAI_API_KEY:-}"
 OPENROUTER_DETECTED="${OPENROUTER_API_KEY:-}"
 
-for rc in ~/.zshrc ~/.bashrc ~/.zshenv; do
+extract_key() {
+  local var="$1" file="$2"
+  grep "$var" "$file" 2>/dev/null | sed -n "s/.*${var}=[\"']*\([^\"' ]*\).*/\1/p" | tail -1
+}
+
+for rc in ~/.zshrc ~/.bashrc ~/.zshenv ~/.profile; do
   [[ -f "$rc" ]] || continue
-  [[ -z "$ARK_DETECTED" ]] && ARK_DETECTED=$(grep -oP 'ARK_API_KEY=\K[^\s"]+' "$rc" 2>/dev/null | tail -1) || true
-  [[ -z "$GLM_DETECTED" ]] && GLM_DETECTED=$(grep -oP 'GLM_API_KEY=\K[^\s"]+' "$rc" 2>/dev/null | tail -1) || true
-  [[ -z "$OPENROUTER_DETECTED" ]] && OPENROUTER_DETECTED=$(grep -oP 'OPENROUTER_API_KEY=\K[^\s"]+' "$rc" 2>/dev/null | tail -1) || true
+  [[ -z "$ARK_DETECTED" ]] && ARK_DETECTED=$(extract_key ARK_API_KEY "$rc")
+  [[ -z "$GLM_DETECTED" ]] && GLM_DETECTED=$(extract_key GLM_API_KEY "$rc")
+  [[ -z "$OPENROUTER_DETECTED" ]] && OPENROUTER_DETECTED=$(extract_key OPENROUTER_API_KEY "$rc")
 done
 
 [[ -n "$ARK_DETECTED" ]] && echo "  Found: ARK key (${ARK_DETECTED:0:8}...)"
