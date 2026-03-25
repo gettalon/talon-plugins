@@ -24,6 +24,18 @@ Stop there. You'll know if this is for you.
 
 ## What You Get
 
+### Plugins
+
+| Plugin | What | Install |
+|--------|------|---------|
+| **browser-control** | 15 MCP tools for Chrome — read, click, fill, screenshot | `/plugin install browser-control@gettalon-talon-plugins` |
+| **computer-use** | macOS desktop automation — mouse, keyboard, windows | `/plugin install computer-use@gettalon-talon-plugins` |
+| **ai-dispatch** | Route tasks to 7 AI backends (Doubao, DeepSeek, GLM...) | `/plugin install ai-dispatch@gettalon-talon-plugins` |
+| **gitlab-scrum** | GitLab Scrum — issues, sprints, boards, wiki via glab | `/plugin install gitlab-scrum@gettalon-talon-plugins` |
+| **autoresearch** | Autonomous edit-test-measure loop | `/plugin install autoresearch@gettalon-talon-plugins` |
+
+---
+
 ### Browser Control — 15 MCP tools for Chrome
 
 Claude sees your browser, reads pages, fills forms, clicks buttons, takes screenshots — through real Chrome DevTools Protocol. Not headless, not simulated. Your actual Chrome.
@@ -56,6 +68,69 @@ Claude controls your Mac — move mouse, click, type, press keys, take screensho
 - **Windows** — list, focus, resize, move windows
 - **Clipboard** — read and write clipboard content
 - **System** — display info, process list, volume control
+
+### AI Dispatch — Multi-backend AI routing
+
+Route tasks to the best AI model. Doubao, DeepSeek, Kimi, MiniMax, GLM — all through one `dispatch` command.
+
+```bash
+/plugin install ai-dispatch@gettalon-talon-plugins
+
+dispatch ark-code "review this code"       # Doubao Seed 2.0 Code
+dispatch ark-minimax "analyze this"         # MiniMax M2.5
+dispatch glm "translate to Chinese"         # GLM-5
+dispatch ark-deepseek "complex reasoning"   # DeepSeek V3.2
+dispatch ark-kimi "long context analysis"   # Kimi K2.5
+```
+
+| Backend | Model | Best for |
+|---------|-------|----------|
+| `ark-code` | Doubao Seed 2.0 Code | Code generation, review |
+| `ark-pro` | Doubao Seed 2.0 Pro | General reasoning |
+| `ark-minimax` | MiniMax M2.5 | Analysis, research |
+| `ark-kimi` | Kimi K2.5 | Long context |
+| `ark-deepseek` | DeepSeek V3.2 | Complex reasoning |
+| `glm` | GLM-5 | Chinese language |
+| `ark-auto` | Auto routing | Smart model selection |
+
+### GitLab Scrum — Project management via glab CLI
+
+Full Scrum/Kanban workflow for GitLab — issues, sprints, boards, wiki — all from the terminal.
+
+```bash
+/plugin install gitlab-scrum@gettalon-talon-plugins
+
+# Sprint planning
+/gitlab-sprint plan Sprint 2026-W14
+
+# Issue management
+/gitlab-scrum create issue "Implement feature X" --label "To Do"
+
+# Board management
+/gitlab-board setup
+
+# Wiki with Mermaid diagrams
+/gitlab-wiki create "Architecture" with sequence diagram
+```
+
+| Skill | What it does |
+|-------|-------------|
+| `/gitlab-scrum` | Issues, labels, milestones — core CRUD |
+| `/gitlab-sprint` | Sprint lifecycle — create, populate, track, close |
+| `/gitlab-board` | Kanban board setup and issue movement |
+| `/gitlab-wiki` | Wiki pages with Mermaid diagram support |
+
+Requires: `glab` CLI (`brew install glab`) + `glab auth login`
+
+### Autoresearch — Autonomous research loop
+
+Iteratively edit, test, measure, keep/discard. Autonomous optimization with any AI backend.
+
+```bash
+/plugin install autoresearch@gettalon-talon-plugins
+
+/autoresearch src/model.py accuracy --budget 10m --provider ark
+```
 
 ### Two-Way Chat — Chrome side panel channel
 
