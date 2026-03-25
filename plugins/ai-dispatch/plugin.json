@@ -1,5 +1,5 @@
 {
-  "name": "talon-ai-dispatch",
+  "name": "ai-dispatch",
   "version": "0.3.0",
   "description": "Dispatch subagents to multiple AI backends (GLM, Doubao, DeepSeek, Kimi, MiniMax). Simple: dispatch ark-code \"prompt\"",
   "author": "Talon",

@@ -9,7 +9,7 @@
   },
   "plugins": [
     {
-      "name": "talon-browser-control",
+      "name": "browser",
       "source": "./plugins/browser-control",
       "description": "Full browser control via Chrome DevTools Protocol. Navigate, click, fill forms, screenshot, run JS.",
       "version": "1.0.0",
@@ -26,7 +26,7 @@
       ]
     },
     {
-      "name": "talon-computer-use",
+      "name": "computer-use",
       "source": "./plugins/computer-use",
       "description": "Control macOS desktop \u2014 mouse, keyboard, screenshots, windows, displays, clipboard. Native Quartz automation via usecomputer CLI.",
       "version": "1.0.0",
@@ -45,7 +45,7 @@
       ]
     },
     {
-      "name": "talon-autoresearch",
+      "name": "autoresearch",
       "source": "./plugins/autoresearch",
       "description": "Autonomous experiment loop \u2014 iteratively edit, test, measure, keep/discard. Inspired by Karpathy's autoresearch.",
       "version": "0.1.0",
@@ -64,7 +64,7 @@
       ]
     },
     {
-      "name": "talon-ai-dispatch",
+      "name": "ai-dispatch",
       "source": "./plugins/ai-dispatch",
       "description": "Dispatch subagents to multiple AI backends (GLM, Doubao, DeepSeek, Kimi, MiniMax). Simple: dispatch ark-code \"prompt\"",
       "version": "0.3.0",

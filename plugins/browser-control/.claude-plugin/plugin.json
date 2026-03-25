@@ -1,5 +1,5 @@
 {
-  "name": "talon-browser-control",
+  "name": "browser",
   "description": "Control Chrome browser via CDP. Navigate, click, fill forms, take screenshots, run JavaScript.",
   "version": "1.0.0",
   "author": {
