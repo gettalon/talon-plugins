@@ -12,22 +12,20 @@ curl -fsSL https://raw.githubusercontent.com/gettalon/talon-plugins/master/scrip
 irm https://raw.githubusercontent.com/gettalon/talon-plugins/master/scripts/setup.ps1 | iex
 ```
 
-This auto-configures Talon MCP server for every tool on your machine:
+Each tool gets **MCP + Skills** automatically:
 
-| Tool | Config | What setup.sh does |
-|------|--------|-------------------|
-| **Codex** | `~/.codex/config.toml` | Adds `[mcp_servers.talon-browser]` |
-| **Cursor** | `~/.cursor/mcp.json` | Adds to `mcpServers` |
-| **Windsurf** | `~/.windsurf/mcp.json` | Adds to `mcpServers` |
-| **Gemini CLI** | `~/.gemini/settings.json` | Adds to `mcpServers` |
-| **Claude Code** | Plugin marketplace | Prints install commands |
+| Tool | MCP (browser) | Skills | Config |
+|------|:---:|:---:|--------|
+| **Codex** | Yes | `~/.agents/skills/` | `~/.codex/config.toml` |
+| **Cursor** | Yes | `~/.agents/skills/` | `~/.cursor/mcp.json` |
+| **Windsurf** | Yes | `~/.agents/skills/` | `~/.windsurf/mcp.json` |
+| **Gemini CLI** | Yes | `~/.gemini/commands/` | `~/.gemini/settings.json` |
+| **Claude Code** | Yes | Full plugin marketplace | `~/.claude/plugins/` |
 
-For Claude Code, run these after:
-```bash
-/plugin marketplace add gettalon/talon-plugins
-/plugin install browser-control@gettalon-talon-plugins
-/reload-plugins
-```
+**What gets installed:**
+- **MCP:** `talon-browser` — Chrome DevTools Protocol, 15 browser tools
+- **Skills:** gitlab-scrum, gitlab-sprint, gitlab-board, gitlab-wiki, ai-dispatch, autoresearch
+- **Claude Code extra:** computer-use, plugin marketplace with all plugins
 
 Then try it:
 ```
