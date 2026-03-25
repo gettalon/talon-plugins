@@ -88,6 +88,10 @@ else:
     print(f'export ANTHROPIC_DEFAULT_SONNET_MODEL=\"{alias}\"')
     print(f'export ANTHROPIC_DEFAULT_HAIKU_MODEL=\"{alias}\"')
     print(f'export CLAUDE_CODE_SUBAGENT_MODEL=\"{alias}\"')
+
+# Check disable_mcp_tools flag
+if backend.get('disable_mcp_tools', False):
+    print('export DISPATCH_DISABLE_MCP=1')
 " 2>/dev/null)" || return 1
 }
 
@@ -190,22 +194,25 @@ case "$TOOL" in
     fi
     DISPATCH_ID=$(register_dispatch "$BACKEND" "claude" "$PROMPT")
     echo "[dispatch] $DISPATCH_ID ($BACKEND)" >&2
+
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     RENDERER="$SCRIPT_DIR/stream-render.py"
     RAW_LOG="/tmp/ark-dispatch-$$.jsonl"
+
+    # Build command args
+    CMD_ARGS=(-p --dangerously-skip-permissions --output-format stream-json --verbose --json-schema "$SCHEMA")
+    if [[ "${DISPATCH_DISABLE_MCP:-}" == "1" ]]; then
+      EMPTY_MCP="/tmp/dispatch-empty-mcp.json"
+      echo '{"mcpServers":{}}' > "$EMPTY_MCP"
+      CMD_ARGS+=(--bare --strict-mcp-config --mcp-config "$EMPTY_MCP")
+    fi
+    CMD_ARGS+=(-- "$PROMPT")
+
     if [[ -f "$RENDERER" ]]; then
-      # stdout: formatted (for Claude Code display)
-      # file: raw stream-json (for dcheck)
-      claude -p --dangerously-skip-permissions \
-        --output-format stream-json --verbose \
-        --json-schema "$SCHEMA" \
-        "$PROMPT" 2>/dev/null | tee "$RAW_LOG" | python3 "$RENDERER"
+      claude "${CMD_ARGS[@]}" 2>&1 | tee "$RAW_LOG" | python3 "$RENDERER"
       exit "${PIPESTATUS[0]}"
     else
-      exec claude -p --dangerously-skip-permissions \
-        --output-format stream-json --verbose \
-        --json-schema "$SCHEMA" \
-        "$PROMPT"
+      exec claude "${CMD_ARGS[@]}"
     fi
     ;;
 esac
