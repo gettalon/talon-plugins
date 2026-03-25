@@ -32,9 +32,9 @@ for t in "${TOOLS[@]}"; do T_ON[$t]=1; done
 # ─── Combined UI ───
 S_NUM=${#SKILLS[@]}
 T_NUM=${#TOOLS[@]}
-SECTION=0  # 0=skills, 1=tools
+SECTION=1  # start on Tools
 S_CUR=0
-T_CUR=0
+T_CUR=0    # cursor on "all"
 
 draw_all() {
   echo -e "  ${B}Skills / Plugins${R}"
