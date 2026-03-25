@@ -9,7 +9,7 @@
   },
   "plugins": [
     {
-      "name": "browser",
+      "name": "web",
       "source": "./plugins/browser-control",
       "description": "Full browser control via Chrome DevTools Protocol. Navigate, click, fill forms, screenshot, run JS.",
       "version": "1.0.0",
