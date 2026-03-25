@@ -5,19 +5,36 @@ Give Claude Code eyes and hands — control your browser and your computer. Open
 ## Quick Start
 
 ```bash
-# Install (30 seconds)
-/plugin marketplace add gettalon/talon-plugins
-/plugin install browser-control@gettalon-talon-plugins
-/reload-plugins
+# One command — detects your tools and configures everything
+npx @gettalon/cli setup
+```
 
-# Set up Chrome extension
-/browser-control:setup
+This auto-configures Talon for every AI coding tool on your machine:
 
-# Try it — ask Claude to browse
+| Tool | Config Location | How |
+|------|----------------|-----|
+| **Claude Code** | Plugin marketplace | `/plugin install browser-control@gettalon-talon-plugins` |
+| **Codex (OpenAI)** | `~/.codex/config.toml` | Auto-adds MCP server |
+| **Cursor** | `~/.cursor/mcp.json` | Auto-adds MCP server |
+| **Windsurf** | `~/.windsurf/mcp.json` | Auto-adds MCP server |
+| **Gemini CLI** | `~/.gemini/settings.json` | Auto-adds MCP server |
+
+Or setup a specific tool:
+```bash
+npx @gettalon/cli setup claude    # Claude Code only
+npx @gettalon/cli setup codex     # Codex only
+npx @gettalon/cli setup cursor    # Cursor only
+npx @gettalon/cli setup windsurf  # Windsurf only
+npx @gettalon/cli setup gemini    # Gemini CLI only
+npx @gettalon/cli status          # Show detected tools
+```
+
+Then load the Chrome extension and try it:
+```bash
+# Ask Claude to browse
 Navigate to https://example.com and tell me what's on the page
 Take a screenshot of the current tab
 Click the "Learn more" link
-Fill the search box with "Claude Code" and press Enter
 ```
 
 Stop there. You'll know if this is for you.
@@ -205,47 +222,27 @@ Open the browser console, navigate to my app, and show me any JavaScript errors
 
 ## Works With
 
-Built on MCP standard — works with any AI coding tool, not just Claude Code.
+Built on MCP standard — works with any AI coding tool.
 
-### Claude Code (full experience)
 ```bash
-/plugin marketplace add gettalon/talon-plugins
-/plugin install browser-control@gettalon-talon-plugins
-/reload-plugins
-```
-Includes: 15 MCP tools + two-way chat channel + setup skill + Chrome extension
-
-### Codex (OpenAI)
-Add to `.codex/config.toml`:
-```toml
-[mcp_servers.talon-browser]
-command = "npx"
-args = ["-y", "@gettalon/mcp@1"]
+npx @gettalon/cli setup   # Auto-detects and configures all
 ```
 
-### Cursor
-Add to Cursor Settings → MCP Servers:
-```json
-{
-  "talon-browser": {
-    "command": "npx",
-    "args": ["-y", "@gettalon/mcp@1"]
-  }
-}
+| Feature | Claude Code | Codex | Cursor | Windsurf | Gemini CLI |
+|---------|:-----------:|:-----:|:------:|:--------:|:----------:|
+| 15 browser MCP tools | Yes | Yes | Yes | Yes | Yes |
+| Chrome extension | Yes | Yes | Yes | Yes | Yes |
+| Desktop automation | Yes | — | — | — | — |
+| Two-way chat (channels) | Yes | — | — | — | — |
+| AI Dispatch (7 backends) | Yes | — | — | — | — |
+| GitLab Scrum | Yes | — | — | — | — |
+| Plugin marketplace | Yes | — | — | — | — |
+
+Manual config (if you prefer):
+```bash
+# Any MCP client — just point to:
+npx -y @gettalon/mcp@2
 ```
-
-### Windsurf / Gemini CLI / Any MCP Client
-Same config — just point to `npx -y @gettalon/mcp@1` as the MCP server command.
-
-Then load the Chrome extension from `~/Downloads/talon-browser-control` (download from this repo's `plugins/browser-control/chrome-extension/`).
-
-| Feature | Claude Code | Codex / Cursor / Others |
-|---------|------------|------------------------|
-| 15 browser MCP tools | Yes | Yes |
-| Chrome extension | Yes | Yes |
-| Two-way chat (channels) | Yes | No |
-| Setup skill | Yes | No |
-| Plugin marketplace install | Yes | No (manual MCP config) |
 
 ## Links
 
