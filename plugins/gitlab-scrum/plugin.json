@@ -2,7 +2,7 @@
   "name": "gitlab-scrum",
   "version": "0.1.0",
   "description": "GitLab Scrum management via glab CLI - issues, milestones, boards, wiki, sprint planning",
-  "author": "Talon",
+  "author": { "name": "Talon" },
   "license": "MIT",
   "talon": {
     "plugin": true,
