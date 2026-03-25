@@ -11,7 +11,51 @@ ok()   { echo -e "  ${G}✓${R} $1"; }
 skip() { echo -e "  ${D}– $1${R}"; }
 info() { echo -e "  ${D}$1${R}"; }
 
-# ─── Detect ───
+# ─── Checkbox UI ───
+# Args: title, array-name of "key|label" items, assoc-array-name of checked state
+run_checkbox() {
+  local title="$1"; shift
+  local -n _items=$1; shift
+  local -n _checked=$1
+  local num=${#_items[@]} cursor=0
+
+  _draw() {
+    for i in "${!_items[@]}"; do
+      local key="${_items[$i]%%|*}" label="${_items[$i]#*|}"
+      local box="[ ]"; [ "${_checked[$key]}" = "1" ] && box="${G}[x]${R}"
+      if [ "$i" -eq "$cursor" ]; then
+        echo -e "  ${C}▸${R} ${box} ${B}${key}${R} ${D}${label}${R}"
+      else
+        echo -e "    ${box} ${key} ${D}${label}${R}"
+      fi
+    done
+    echo -e "  ${D}↑↓ move  Space toggle  Enter confirm${R}"
+  }
+
+  echo -e "\n${B}${C}${title}${R}"
+  _draw
+  local lines=$((num + 1))
+
+  if { [ -t 0 ] || [ -e /dev/tty ]; } 2>/dev/null; then
+    while true; do
+      IFS= read -rsn1 key < /dev/tty 2>/dev/null || break
+      if [[ "$key" == $'\x1b' ]]; then
+        read -rsn2 rest < /dev/tty 2>/dev/null || break
+        case "$rest" in
+          '[A') cursor=$(( (cursor - 1 + num) % num )) ;;
+          '[B') cursor=$(( (cursor + 1) % num )) ;;
+        esac
+      elif [[ "$key" == " " ]]; then
+        local k="${_items[$cursor]%%|*}"
+        [ "${_checked[$k]}" = "1" ] && _checked[$k]=0 || _checked[$k]=1
+      elif [[ "$key" == "" ]]; then break; fi
+      printf "\033[${lines}A"
+      _draw
+    done
+  fi
+}
+
+# ─── Detect tools ───
 declare -A HAS
 { [ -d "$HOME/.codex" ] || command -v codex &>/dev/null; } && HAS[codex]=1
 [ -d "$HOME/.cursor" ] && HAS[cursor]=1
@@ -21,113 +65,78 @@ command -v claude &>/dev/null && HAS[claude]=1
 
 echo -e "\n${B}${C}Talon Setup${R}\n"
 
-# ─── Two-column checkbox ───
-# Left: Tools    Right: Skills/Plugins
+# ─── Step 1: Select Skills/Plugins ───
+SKILL_ITEMS=(
+  "gitlab-scrum|GitLab issues, labels, milestones"
+  "gitlab-sprint|Sprint planning and lifecycle"
+  "gitlab-board|Kanban board management"
+  "gitlab-wiki|Wiki pages with Mermaid diagrams"
+  "ai-dispatch|Multi-backend AI routing (7 backends)"
+  "autoresearch|Autonomous edit-test-measure loop"
+)
+declare -A S_ON
+S_ON[all]=1
+for e in "${SKILL_ITEMS[@]}"; do S_ON[${e%%|*}]=1; done
 
-TOOLS=("codex" "cursor" "windsurf" "gemini" "claude")
-SKILLS=("gitlab-scrum" "gitlab-sprint" "gitlab-board" "gitlab-wiki" "ai-dispatch" "autoresearch")
+# Add "all" toggle at top
+SKILL_MENU=("all|Toggle all skills" "${SKILL_ITEMS[@]}")
+declare -A S_CHECK
+S_CHECK[all]=1
+for e in "${SKILL_ITEMS[@]}"; do S_CHECK[${e%%|*}]=1; done
 
-declare -A T_ON S_ON
-for t in "${TOOLS[@]}"; do T_ON[$t]=${HAS[$t]:-0}; done
-for s in "${SKILLS[@]}"; do S_ON[$s]=1; done
+run_checkbox "Skills / Plugins" SKILL_MENU S_CHECK
 
-COL=0  # 0=tools, 1=skills
-T_CUR=0
-S_CUR=0
-
-draw() {
-  local t_num=${#TOOLS[@]} s_num=${#SKILLS[@]}
-  local max=$((t_num > s_num ? t_num : s_num))
-
-  printf "  ${B}%-34s %s${R}\n" "Tools" "Skills / Plugins"
-  printf "  ${D}%-34s %s${R}\n" "─────" "────────────────"
-
-  for i in $(seq 0 $((max - 1))); do
-    # Left column: tools
-    if [ "$i" -lt "$t_num" ]; then
-      local t="${TOOLS[$i]}"
-      local box="[ ]"; [ "${T_ON[$t]}" = "1" ] && box="${G}[x]${R}"
-      local det=""; [ "${HAS[$t]:-0}" = "1" ] && det=" ${D}✓${R}"
-      if [ "$COL" -eq 0 ] && [ "$i" -eq "$T_CUR" ]; then
-        printf "  ${C}▸${R} %-2b %-24b" "$box" "${B}${t}${R}${det}"
-      else
-        printf "    %-2b %-24b" "$box" "${t}${det}"
-      fi
-    else
-      printf "  %-30s" ""
-    fi
-
-    # Right column: skills
-    if [ "$i" -lt "$s_num" ]; then
-      local s="${SKILLS[$i]}"
-      local sbox="[ ]"; [ "${S_ON[$s]}" = "1" ] && sbox="${G}[x]${R}"
-      if [ "$COL" -eq 1 ] && [ "$i" -eq "$S_CUR" ]; then
-        printf "${C}▸${R} %-2b %b" "$sbox" "${B}${s}${R}"
-      else
-        printf "  %-2b %b" "$sbox" "${s}"
-      fi
-    fi
-    echo ""
-  done
-  echo -e "  ${D}↑↓ move  ←→ switch column  Space toggle  Enter confirm${R}"
-}
-
-TOTAL_LINES=$(( (${#TOOLS[@]} > ${#SKILLS[@]} ? ${#TOOLS[@]} : ${#SKILLS[@]}) + 3 ))
-
-if [ -t 0 ] || [ -e /dev/tty ]; then
-  draw
-  while true; do
-    IFS= read -rsn1 key < /dev/tty 2>/dev/null || break
-    if [[ "$key" == $'\x1b' ]]; then
-      read -rsn2 rest < /dev/tty 2>/dev/null || break
-      case "$rest" in
-        '[A') # Up
-          if [ "$COL" -eq 0 ]; then T_CUR=$(( (T_CUR - 1 + ${#TOOLS[@]}) % ${#TOOLS[@]} ))
-          else S_CUR=$(( (S_CUR - 1 + ${#SKILLS[@]}) % ${#SKILLS[@]} )); fi ;;
-        '[B') # Down
-          if [ "$COL" -eq 0 ]; then T_CUR=$(( (T_CUR + 1) % ${#TOOLS[@]} ))
-          else S_CUR=$(( (S_CUR + 1) % ${#SKILLS[@]} )); fi ;;
-        '[D') COL=0 ;; # Left
-        '[C') COL=1 ;; # Right
-      esac
-    elif [[ "$key" == " " ]]; then
-      if [ "$COL" -eq 0 ]; then
-        local t="${TOOLS[$T_CUR]}"
-        [ "${T_ON[$t]}" = "1" ] && T_ON[$t]=0 || T_ON[$t]=1
-      else
-        local s="${SKILLS[$S_CUR]}"
-        [ "${S_ON[$s]}" = "1" ] && S_ON[$s]=0 || S_ON[$s]=1
-      fi
-    elif [[ "$key" == "" ]]; then
-      break
-    fi
-    printf "\033[${TOTAL_LINES}A"
-    draw
-  done
+# Sync "all" toggle
+if [ "${S_CHECK[all]}" = "1" ]; then
+  for e in "${SKILL_ITEMS[@]}"; do S_CHECK[${e%%|*}]=1; done
 fi
 
-# ─── Install ───
+# ─── Step 2: Select Tools ───
+TOOL_ITEMS=()
+for t in codex cursor windsurf gemini claude; do
+  local_label=""
+  [ "${HAS[$t]:-0}" = "1" ] && local_label="(detected)"
+  TOOL_ITEMS+=("$t|$local_label")
+done
 
-# MCP helpers
+declare -A T_CHECK
+T_CHECK[all]=1
+for t in codex cursor windsurf gemini claude; do
+  T_CHECK[$t]=${HAS[$t]:-0}
+done
+# Check if all detected
+all_det=1; for t in codex cursor windsurf gemini claude; do [ "${T_CHECK[$t]}" != "1" ] && all_det=0; done
+T_CHECK[all]=$all_det
+
+TOOL_MENU=("all|Toggle all tools" "${TOOL_ITEMS[@]}")
+
+run_checkbox "Tools" TOOL_MENU T_CHECK
+
+# Sync "all" toggle
+if [ "${T_CHECK[all]}" = "1" ]; then
+  for t in codex cursor windsurf gemini claude; do T_CHECK[$t]=1; done
+fi
+
+# ─── MCP helpers ───
 add_json_mcp() {
   local file="$1"; mkdir -p "$(dirname "$file")"
-  if [ -f "$file" ] && grep -q "talon-browser" "$file" 2>/dev/null; then ok "MCP already in $(basename "$file")"; return; fi
+  if [ -f "$file" ] && grep -q "talon-browser" "$file" 2>/dev/null; then ok "MCP already configured"; return; fi
   python3 -c "
-import json, os; f='$file'
-cfg = json.load(open(f)) if os.path.exists(f) else {}
+import json,os;f='$file'
+cfg=json.load(open(f)) if os.path.exists(f) else {}
 cfg.setdefault('mcpServers',{})['talon-browser']={'command':'npx','args':['-y','${MCP_PKG}']}
-json.dump(cfg, open(f,'w'), indent=2)" 2>/dev/null
-  ok "MCP added to $(basename "$file")"
+json.dump(cfg,open(f,'w'),indent=2)" 2>/dev/null
+  ok "MCP added"
 }
 
 add_toml_mcp() {
   local file="$1"; mkdir -p "$(dirname "$file")"
-  if [ -f "$file" ] && grep -q "talon-browser" "$file" 2>/dev/null; then ok "MCP already in $(basename "$file")"; return; fi
+  if [ -f "$file" ] && grep -q "talon-browser" "$file" 2>/dev/null; then ok "MCP already configured"; return; fi
   printf '\n[mcp_servers.talon-browser]\ncommand = "npx"\nargs = ["-y", "%s"]\n' "${MCP_PKG}" >> "$file"
-  ok "MCP added to $(basename "$file")"
+  ok "MCP added"
 }
 
-# Skill source map
+# ─── Skill installer ───
 declare -A SKILL_SRC=(
   [gitlab-scrum]="gitlab-scrum/gitlab-scrum" [gitlab-sprint]="gitlab-scrum/gitlab-sprint"
   [gitlab-board]="gitlab-scrum/gitlab-board" [gitlab-wiki]="gitlab-scrum/gitlab-wiki"
@@ -136,47 +145,65 @@ declare -A SKILL_SRC=(
 
 install_skill() {
   local skill="$1" target="$2"
+  [ "${S_CHECK[$skill]:-0}" != "1" ] && return
   local src="${SKILL_SRC[$skill]}" plugin="${SKILL_SRC[$skill]%%/*}"
   local dir="$target/$skill" file="$dir/SKILL.md"
-  [ -f "$file" ] && { ok "$skill already installed"; return; }
+  [ -f "$file" ] && { ok "$skill"; return; }
   mkdir -p "$dir"
-  local url="${REPO_RAW}/plugins/${plugin}/skills/${skill}/SKILL.md"
-  local url2="${REPO_RAW}/plugins/${plugin}/skills/${skill}/skill.md"
-  curl -fsSL "$url" -o "$file" 2>/dev/null || curl -fsSL "$url2" -o "$file" 2>/dev/null && ok "$skill" || { skip "$skill"; rm -rf "$dir"; }
+  curl -fsSL "${REPO_RAW}/plugins/${plugin}/skills/${skill}/SKILL.md" -o "$file" 2>/dev/null || \
+  curl -fsSL "${REPO_RAW}/plugins/${plugin}/skills/${skill}/skill.md" -o "$file" 2>/dev/null && \
+    ok "$skill" || { skip "$skill"; rm -rf "$dir"; }
 }
 
+install_skills_to() {
+  local target="$1"
+  for e in "${SKILL_ITEMS[@]}"; do install_skill "${e%%|*}" "$target"; done
+}
+
+# ─── Install per tool ───
 echo ""
 
-# Tools
-for t in "${TOOLS[@]}"; do
-  [ "${T_ON[$t]}" != "1" ] && continue
-  echo -e "\n${B}${C}${t}${R}"
-  case "$t" in
-    codex)    add_toml_mcp "$HOME/.codex/config.toml"
-              for s in "${SKILLS[@]}"; do [ "${S_ON[$s]}" = "1" ] && install_skill "$s" "$HOME/.agents/skills"; done ;;
-    cursor)   add_json_mcp "$HOME/.cursor/mcp.json"
-              for s in "${SKILLS[@]}"; do [ "${S_ON[$s]}" = "1" ] && install_skill "$s" "$HOME/.agents/skills"; done ;;
-    windsurf) add_json_mcp "$HOME/.windsurf/mcp.json"
-              for s in "${SKILLS[@]}"; do [ "${S_ON[$s]}" = "1" ] && install_skill "$s" "$HOME/.agents/skills"; done ;;
-    gemini)   add_json_mcp "$HOME/.gemini/settings.json"
-              for s in "${SKILLS[@]}"; do [ "${S_ON[$s]}" = "1" ] && install_skill "$s" "$HOME/.agents/skills"; done ;;
-    claude)
-      if command -v claude &>/dev/null; then
-        claude plugin marketplace list 2>/dev/null | grep -q "gettalon-talon-plugins" && ok "Marketplace ready" || \
-          { claude plugin marketplace add gettalon/talon-plugins 2>/dev/null && ok "Marketplace added"; }
-        PLUGIN_NAMES=$(curl -fsSL "${REPO_RAW}/.claude-plugin/marketplace.json" 2>/dev/null | \
-          python3 -c "import sys,json;[print(p['name']) for p in json.load(sys.stdin).get('plugins',[])]" 2>/dev/null)
-        [ -z "$PLUGIN_NAMES" ] && PLUGIN_NAMES="web computer-use ai-dispatch autoresearch gitlab-scrum"
-        for p in $PLUGIN_NAMES; do
-          claude plugin list 2>/dev/null | grep -q "${p}@gettalon-talon-plugins" && ok "$p" || \
-            { claude plugin install "${p}@gettalon-talon-plugins" 2>/dev/null && ok "$p installed" || info "$p — /plugin install ${p}@gettalon-talon-plugins"; }
-        done
-        info "Run /reload-plugins to activate"
-      else
-        skip "claude CLI not found"
-      fi ;;
-  esac
-done
+if [ "${T_CHECK[codex]}" = "1" ]; then
+  echo -e "\n${B}${C}Codex${R}"
+  add_toml_mcp "$HOME/.codex/config.toml"
+  install_skills_to "$HOME/.agents/skills"
+fi
+
+if [ "${T_CHECK[cursor]}" = "1" ]; then
+  echo -e "\n${B}${C}Cursor${R}"
+  add_json_mcp "$HOME/.cursor/mcp.json"
+  install_skills_to "$HOME/.agents/skills"
+fi
+
+if [ "${T_CHECK[windsurf]}" = "1" ]; then
+  echo -e "\n${B}${C}Windsurf${R}"
+  add_json_mcp "$HOME/.windsurf/mcp.json"
+  install_skills_to "$HOME/.agents/skills"
+fi
+
+if [ "${T_CHECK[gemini]}" = "1" ]; then
+  echo -e "\n${B}${C}Gemini CLI${R}"
+  add_json_mcp "$HOME/.gemini/settings.json"
+  install_skills_to "$HOME/.agents/skills"
+fi
+
+if [ "${T_CHECK[claude]}" = "1" ]; then
+  echo -e "\n${B}${C}Claude Code${R}"
+  if command -v claude &>/dev/null; then
+    claude plugin marketplace list 2>/dev/null | grep -q "gettalon-talon-plugins" && ok "Marketplace ready" || \
+      { claude plugin marketplace add gettalon/talon-plugins 2>/dev/null && ok "Marketplace added"; }
+    NAMES=$(curl -fsSL "${REPO_RAW}/.claude-plugin/marketplace.json" 2>/dev/null | \
+      python3 -c "import sys,json;[print(p['name']) for p in json.load(sys.stdin).get('plugins',[])]" 2>/dev/null)
+    [ -z "$NAMES" ] && NAMES="web computer-use ai-dispatch autoresearch gitlab-scrum"
+    for p in $NAMES; do
+      claude plugin list 2>/dev/null | grep -q "${p}@gettalon-talon-plugins" && ok "$p" || \
+        { claude plugin install "${p}@gettalon-talon-plugins" 2>/dev/null && ok "$p installed" || info "$p — /plugin install ${p}@gettalon-talon-plugins"; }
+    done
+    info "Run /reload-plugins to activate"
+  else
+    skip "claude CLI not found"
+  fi
+fi
 
 echo -e "\n${B}${C}Done!${R}"
 ok "MCP + Skills configured"
