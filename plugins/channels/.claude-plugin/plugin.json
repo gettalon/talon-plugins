@@ -1,5 +1,5 @@
 {
-  "name": "channels",
+  "name": "talon-channels",
   "description": "Universal channel plugin for Claude Code with 21+ platform adapters. Connect via WebSocket (default) or use built-in adapters for Telegram, Discord, Slack, WhatsApp, Signal, iMessage, IRC, Google Chat, LINE, Feishu, Matrix, Mattermost, MS Teams, and more. Full hook event forwarding, permission relay, and bidirectional chat.",
   "version": "1.1.0",
   "author": {

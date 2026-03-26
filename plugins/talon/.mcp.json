@@ -1,0 +1,10 @@
+{
+  "cdp": {
+    "command": "npx",
+    "args": ["-y", "@gettalon/mcp@2"]
+  },
+  "channels": {
+    "command": "node",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/../channels/mcp-server/dist/index.js"]
+  }
+}

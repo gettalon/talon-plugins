@@ -9,7 +9,26 @@
   },
   "plugins": [
     {
-      "name": "web",
+      "name": "talon",
+      "source": "./plugins/talon",
+      "description": "All-in-one Talon plugin — browser control, channels (22 adapters), computer use, AI dispatch, autoresearch, GitLab scrum. Use /talon:* commands.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Talon"
+      },
+      "category": "all",
+      "keywords": [
+        "talon",
+        "browser",
+        "channels",
+        "computer-use",
+        "ai-dispatch",
+        "autoresearch",
+        "gitlab"
+      ]
+    },
+    {
+      "name": "talon-web",
       "source": "./plugins/browser-control",
       "description": "Full browser control via Chrome DevTools Protocol. Navigate, click, fill forms, screenshot, run JS.",
       "version": "1.0.0",
@@ -26,7 +45,7 @@
       ]
     },
     {
-      "name": "channels",
+      "name": "talon-channels",
       "source": "./plugins/channels",
       "description": "Universal channel server — connect any client via WebSocket. Full hook event forwarding, permission relay, bidirectional chat.",
       "version": "1.0.0",
@@ -45,7 +64,7 @@
       ]
     },
     {
-      "name": "computer-use",
+      "name": "talon-computer-use",
       "source": "./plugins/computer-use",
       "description": "Control macOS desktop \u2014 mouse, keyboard, screenshots, windows, displays, clipboard. Native Quartz automation via usecomputer CLI.",
       "version": "1.0.0",
@@ -64,7 +83,7 @@
       ]
     },
     {
-      "name": "autoresearch",
+      "name": "talon-autoresearch",
       "source": "./plugins/autoresearch",
       "description": "Autonomous experiment loop \u2014 iteratively edit, test, measure, keep/discard. Inspired by Karpathy's autoresearch.",
       "version": "0.1.0",
@@ -83,7 +102,7 @@
       ]
     },
     {
-      "name": "ai-dispatch",
+      "name": "talon-ai-dispatch",
       "source": "./plugins/ai-dispatch",
       "description": "Dispatch subagents to multiple AI backends (GLM, Doubao, DeepSeek, Kimi, MiniMax). Simple: dispatch ark-code \"prompt\"",
       "version": "0.3.0",
@@ -104,7 +123,7 @@
       ]
     },
     {
-      "name": "gitlab-scrum",
+      "name": "talon-gitlab-scrum",
       "source": "./plugins/gitlab-scrum",
       "description": "GitLab Scrum management via glab CLI — issues, milestones, boards, wiki, sprint planning.",
       "version": "0.1.0",

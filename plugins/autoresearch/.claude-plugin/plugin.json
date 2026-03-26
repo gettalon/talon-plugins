@@ -1,5 +1,5 @@
 {
-  "name": "autoresearch",
+  "name": "talon-autoresearch",
   "description": "Autonomous experiment loop \u2014 iteratively edit, test, measure, keep/discard. Inspired by Karpathy's autoresearch.",
   "version": "0.1.0",
   "author": {

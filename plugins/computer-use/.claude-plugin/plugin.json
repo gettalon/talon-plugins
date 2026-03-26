@@ -1,5 +1,5 @@
 {
-  "name": "computer-use",
+  "name": "talon-computer-use",
   "description": "Control the macOS desktop \u2014 mouse, keyboard, screenshots, windows, displays, clipboard. Native Quartz event automation via usecomputer CLI.",
   "version": "1.0.0",
   "author": {

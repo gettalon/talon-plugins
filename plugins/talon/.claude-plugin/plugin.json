@@ -1,0 +1,20 @@
+{
+  "name": "talon",
+  "description": "Talon — all-in-one plugin for Claude Code. Browser control, channels (22 adapters), computer use, AI dispatch, autoresearch, GitLab scrum.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Talon"
+  },
+  "homepage": "https://github.com/gettalon/talon-plugins",
+  "repository": "https://github.com/gettalon/talon-plugins",
+  "license": "MIT",
+  "keywords": [
+    "talon",
+    "browser",
+    "channels",
+    "computer-use",
+    "ai-dispatch",
+    "autoresearch",
+    "gitlab"
+  ]
+}
