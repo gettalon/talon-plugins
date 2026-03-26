@@ -1,0 +1,11 @@
+{
+  "name": "adversarial-coding",
+  "version": "0.1.0",
+  "description": "GAN-style multi-agent coding — Planner, Generator, Evaluator work in adversarial loop. Inspired by Anthropic's research.",
+  "author": "Talon",
+  "license": "MIT",
+  "talon": {
+    "plugin": true,
+    "skills": ["skills/adversarial-coding"]
+  }
+}

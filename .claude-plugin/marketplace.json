@@ -142,6 +142,26 @@
         "sprint",
         "glab"
       ]
+    },
+    {
+      "name": "talon-adversarial-coding",
+      "source": "./plugins/adversarial-coding",
+      "description": "GAN-style multi-agent coding — Planner, Generator, Evaluator work in adversarial loop. Inspired by Anthropic's research.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Talon"
+      },
+      "category": "ai",
+      "keywords": [
+        "adversarial",
+        "multi-agent",
+        "gan",
+        "planner",
+        "generator",
+        "evaluator",
+        "playwright",
+        "autonomous"
+      ]
     }
   ]
 }
