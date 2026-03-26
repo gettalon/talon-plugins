@@ -2,13 +2,5 @@
   "cdp": {
     "command": "npx",
     "args": ["-y", "@gettalon/mcp@2"]
-  },
-  "channels": {
-    "command": "npx",
-    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
-    "env": {
-      "TALON_CHANNEL": "telegram",
-      "TELEGRAM_BOT_TOKEN": "8794726577:AAFCtL4wsR_1_IpyUagG8wPTuoAmJN4qJ18"
-    }
   }
 }
