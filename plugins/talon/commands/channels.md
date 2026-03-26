@@ -178,3 +178,59 @@ For platform adapters (Telegram, Discord, etc.), Claude Code requires a **sender
 - Only approved sender IDs can push messages
 - During research preview, use `--dangerously-load-development-channels` to bypass
 - For production, implement your own pairing flow and allowlist logic
+
+### 10. Migrating from Official Plugins
+
+To migrate from the official `telegram@claude-plugins-official` or `discord@claude-plugins-official` plugins:
+
+**Step 1: Copy your existing credentials**
+
+```bash
+# For Telegram - copy the bot token
+cat ~/.claude/channels/telegram/.env
+```
+
+**Step 2: Disable the official plugin**
+
+Edit `~/.claude/settings.json` and set the official plugin to `false`:
+
+```json
+{
+  "enabledPlugins": {
+    "telegram@claude-plugins-official": false
+  }
+}
+```
+
+**Step 3: Configure talon-channels**
+
+Update the talon plugin's `.mcp.json` with your credentials:
+
+```json
+{
+  "channels": {
+    "command": "node",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/../channels/mcp-server/dist/index.js"],
+    "env": {
+      "TALON_CHANNEL": "telegram",
+      "TELEGRAM_BOT_TOKEN": "YOUR_TOKEN_FROM_STEP_1"
+    }
+  }
+}
+```
+
+**Step 4: Restart with dev mode**
+
+```bash
+claude --dangerously-load-development-channels
+```
+
+**Step 5: Copy access control (optional)**
+
+If you had approved senders in the official plugin, copy the allowlist:
+
+```bash
+cat ~/.claude/channels/telegram/access.json
+```
+
+You'll need to implement equivalent allowlist checking in talon-channels or use dev mode for now.
