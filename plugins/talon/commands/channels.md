@@ -9,13 +9,14 @@ Help the user choose and configure which channel adapter to use with the Talon C
 
 ## Development Mode
 
-During the research preview, channels require the official allowlist. To bypass this for development/testing:
+During the research preview, channels require the official allowlist. To use talon-channels:
 
 ```bash
-claude --dangerously-load-development-channels
+claude --dangerously-load-development-channels plugin:talon@gettalon-talon-plugins --channels talon
 ```
 
-This allows custom channel plugins to register without being on the Anthropic-maintained allowlist.
+- `--dangerously-load-development-channels plugin:talon@gettalon-talon-plugins` — Bypasses the Anthropic allowlist for this plugin
+- `--channels talon` — Enables the talon plugin as a channel (shorthand name)
 
 ## Available Channels
 
