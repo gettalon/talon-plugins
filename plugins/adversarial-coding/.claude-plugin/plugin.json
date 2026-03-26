@@ -1,1 +1,21 @@
-{"extends": "../plugin.json"}
+{
+  "name": "talon-adversarial-coding",
+  "description": "GAN-style multi-agent coding — Planner, Generator, Evaluator work in adversarial loop. Inspired by Anthropic's research.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Talon"
+  },
+  "homepage": "https://github.com/gettalon/talon-plugins",
+  "repository": "https://github.com/gettalon/talon-plugins",
+  "license": "MIT",
+  "keywords": [
+    "adversarial",
+    "multi-agent",
+    "gan",
+    "planner",
+    "generator",
+    "evaluator",
+    "playwright",
+    "autonomous"
+  ]
+}
