@@ -15,7 +15,7 @@ During the research preview, channels require the official allowlist. To use tal
 claude --dangerously-load-development-channels plugin:talon@gettalon-talon-plugins
 ```
 
-The `--dangerously-load-development-channels` flag takes the full plugin reference with `plugin:` prefix. This both bypasses the allowlist AND enables the channel.
+The `plugin:` prefix tells Claude Code to load this channel plugin and bypass the allowlist check.
 
 ## Available Channels
 
