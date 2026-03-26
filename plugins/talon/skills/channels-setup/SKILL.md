@@ -5,20 +5,66 @@ allowed-tools: [Bash]
 
 # Channels Setup Guide
 
-Help the user set up the Talon Channels universal server so any client can connect to Claude Code via WebSocket.
+Help the user set up the Talon Channels universal server so any client can connect to Claude Code via WebSocket or platform adapters (Telegram, Discord, Slack, etc.).
+
+## Development Mode
+
+During the research preview, channels require an allowlist. To bypass this for development:
+
+```bash
+claude --dangerously-load-development-channels
+```
+
+This allows any channel plugin to register without being on the official allowlist.
+
+## Channel Types
+
+| Type | Env Var | Required Credentials |
+|------|---------|---------------------|
+| WebSocket (default) | `websocket` | None (local only) |
+| Telegram | `telegram` | `TELEGRAM_BOT_TOKEN` |
+| Discord | `discord` | `DISCORD_BOT_TOKEN` |
+| Slack | `slack` | `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN` |
+| iMessage | `imessage` | None (macOS only) |
 
 ## Steps
 
-### 1. Verify Installation
-
-The channels MCP server should already be configured. Verify:
+### 1. Check Current Configuration
 
 ```bash
-# Check if the channels server is in MCP config
-cat ~/.claude/settings.json 2>/dev/null | grep -A 3 "talon-channels" || echo "Not configured"
+# Check what channel is configured
+cat ~/.claude/plugins/marketplaces/gettalon-talon-plugins/plugins/talon/.mcp.json 2>/dev/null || echo "Not found"
 ```
 
-### 2. Check Server Health
+### 2. Configure Channel Type
+
+Set `TALON_CHANNEL` env var in the plugin's `.mcp.json`:
+
+**WebSocket (default):**
+```json
+{
+  "channels": {
+    "command": "node",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/../channels/mcp-server/dist/index.js"]
+  }
+}
+```
+
+**Telegram:**
+```json
+{
+  "channels": {
+    "command": "node",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/../channels/mcp-server/dist/index.js"],
+    "env": {
+      "TALON_CHANNEL": "telegram",
+      "TELEGRAM_BOT_TOKEN": "your-bot-token"
+    }
+  }
+}
+```
+
+### 3. Check Server Health (WebSocket mode)
 
 ```bash
 curl -s http://localhost:21568/health 2>/dev/null || echo "Server not running"

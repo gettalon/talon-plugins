@@ -7,6 +7,16 @@ allowed-tools: [Bash, Read, Edit]
 
 Help the user choose and configure which channel adapter to use with the Talon Channels plugin. There are 22 options: the default WebSocket server plus 21 platform-specific adapters.
 
+## Development Mode
+
+During the research preview, channels require the official allowlist. To bypass this for development/testing:
+
+```bash
+claude --dangerously-load-development-channels
+```
+
+This allows custom channel plugins to register without being on the Anthropic-maintained allowlist.
+
 ## Available Channels
 
 | Channel | Env Var Value | Typical Required Env Vars |
@@ -160,3 +170,11 @@ To use multiple channels simultaneously (e.g., WebSocket + Telegram), create sep
 **Platform adapter won't start**: Check that all required environment variables are set. Each platform has its own requirements — see the table above for typical env vars needed.
 
 **WebSocket port conflict**: If port 21568 is in use, set `TALON_CHANNELS_PORT` to a different port, or let the server auto-select by leaving it to fail over to a random port.
+
+### 9. Access Control
+
+For platform adapters (Telegram, Discord, etc.), Claude Code requires a **sender allowlist**:
+
+- Only approved sender IDs can push messages
+- During research preview, use `--dangerously-load-development-channels` to bypass
+- For production, implement your own pairing flow and allowlist logic

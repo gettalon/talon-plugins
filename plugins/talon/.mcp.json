@@ -5,6 +5,10 @@
   },
   "channels": {
     "command": "node",
-    "args": ["${CLAUDE_PLUGIN_ROOT}/../channels/mcp-server/dist/index.js"]
+    "args": ["${CLAUDE_PLUGIN_ROOT}/../channels/mcp-server/dist/index.js"],
+    "env": {
+      "TALON_CHANNEL": "telegram",
+      "TELEGRAM_BOT_TOKEN": "8794726577:AAFCtL4wsR_1_IpyUagG8wPTuoAmJN4qJ18"
+    }
   }
 }
