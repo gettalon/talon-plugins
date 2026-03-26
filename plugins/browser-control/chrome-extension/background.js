@@ -107,6 +107,20 @@ function getActiveConv() {
 // Accumulate streaming text for assistant messages
 let streamingTextAccum = '';
 
+// ── Channel SDK state ──
+// Client mode: chat | monitor | full | custom
+let clientMode = 'full';
+let allowsChat = true;
+let allowsPermissions = true;
+// Recent hook events for the popup to display
+let hookEventBuffer = [];
+const MAX_HOOK_EVENTS = 100;
+
+function addHookEvent(event) {
+  hookEventBuffer.unshift({ ...event, receivedAt: Date.now() });
+  if (hookEventBuffer.length > MAX_HOOK_EVENTS) hookEventBuffer.pop();
+}
+
 
 // ─────────────────────────────────────────────
 // Mesh JWT for relay discovery
@@ -530,6 +544,74 @@ async function handleMessage(data) {
     const cb = rcPendingRequests.get(msg.id);
     rcPendingRequests.delete(msg.id);
     if (cb) cb(msg.error ? null : msg.result, msg.error || null);
+    return;
+  }
+
+  // ── Channel SDK: server connection announcement ──
+  if (msg.type === "connected") {
+    clientMode = msg.mode || 'full';
+    allowsChat = msg.allows_chat !== false;
+    allowsPermissions = msg.allows_permissions !== false;
+    console.log(`[Talon] Channel SDK connected: mode=${clientMode}, chat=${allowsChat}, perms=${allowsPermissions}`);
+    broadcastToPopup({ type: "channel_connected", mode: clientMode, allowsChat, allowsPermissions, availableModes: msg.available_modes, availableCategories: msg.available_categories });
+    return;
+  }
+
+  // ── Channel SDK: mode changed ──
+  if (msg.type === "mode_changed") {
+    clientMode = msg.mode || 'full';
+    allowsChat = msg.allows_chat !== false;
+    allowsPermissions = msg.allows_permissions !== false;
+    console.log(`[Talon] Mode changed: ${clientMode}`);
+    broadcastToPopup({ type: "mode_changed", mode: clientMode, allowsChat, allowsPermissions, categories: msg.categories });
+    return;
+  }
+
+  // ── Channel SDK: hook events from all 23 Claude Code hooks ──
+  if (msg.type === "hook_event" && msg.hook_event_name) {
+    const hookData = msg.data || msg;
+    addHookEvent(hookData);
+    // Forward to popup for display
+    broadcastToPopup({ type: "hook_event", hookEventName: msg.hook_event_name, data: hookData });
+    // Map specific hook events to existing popup event types for compatibility
+    if (msg.hook_event_name === "PreToolUse" && hookData.tool_name) {
+      broadcastToPopup({ type: "tool_use", toolName: hookData.tool_name, arguments: hookData.tool_input, callId: hookData.tool_use_id });
+    }
+    if (msg.hook_event_name === "PostToolUse" && hookData.tool_name) {
+      const output = typeof hookData.tool_response === 'string' ? hookData.tool_response : JSON.stringify(hookData.tool_response || '');
+      broadcastToPopup({ type: "tool_result", callId: hookData.tool_use_id, toolName: hookData.tool_name, output, isError: false });
+    }
+    if (msg.hook_event_name === "PostToolUseFailure" && hookData.tool_name) {
+      broadcastToPopup({ type: "tool_result", callId: hookData.tool_use_id, toolName: hookData.tool_name, output: hookData.error || 'Failed', isError: true });
+    }
+    if (msg.hook_event_name === "SessionStart") {
+      broadcastToPopup({ type: "status", message: `Session started (${hookData.model || 'unknown'})` });
+    }
+    if (msg.hook_event_name === "SessionEnd") {
+      broadcastToPopup({ type: "status", message: "Session ended" });
+    }
+    if (msg.hook_event_name === "SubagentStart") {
+      broadcastToPopup({ type: "status", message: "Subagent started" });
+    }
+    if (msg.hook_event_name === "SubagentStop") {
+      broadcastToPopup({ type: "status", message: "Subagent stopped" });
+    }
+    if (msg.hook_event_name === "UserPromptSubmit") {
+      broadcastToPopup({ type: "status", message: "User prompt submitted" });
+    }
+    return;
+  }
+
+  // ── Channel SDK: permission request (MCP-level relay) ──
+  if (msg.type === "permission_request" && msg.request_id) {
+    broadcastToPopup({
+      type: "permission_request",
+      requestId: msg.request_id,
+      toolName: msg.tool_name,
+      description: msg.description,
+      inputPreview: msg.input_preview,
+      arguments: msg.input_preview,
+    });
     return;
   }
 
@@ -2489,7 +2571,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       port: getPort(),
       recentCommands: recentCommands.slice(0, 20),
       cdpAttachedTabs: attachedTabs,
+      clientMode,
+      allowsChat,
+      allowsPermissions,
     });
+    return true;
+  }
+  if (msg.type === "set_mode") {
+    // Switch Channel SDK client mode
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: "set_mode",
+        mode: msg.mode || "full",
+        categories: msg.categories || [],
+      }));
+    }
+    sendResponse({ ok: true });
+    return true;
+  }
+  if (msg.type === "get_hook_events") {
+    sendResponse(hookEventBuffer.slice(0, msg.limit || 50));
     return true;
   }
   if (msg.type === "reconnect") {
@@ -2602,18 +2703,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "permission_response") {
     // Forward permission response to Talon backend
     if (ws && ws.readyState === WebSocket.OPEN) {
-      if (connectedToRc) {
-        sendRcRequest("answer_permission_request", {
-          request_id: msg.requestId,
-          allowed: msg.allowed,
-        });
-      } else {
-        ws.send(JSON.stringify({
-          type: "permission_response",
-          request_id: msg.requestId,
-          allowed: msg.allowed,
-        }));
-      }
+      // Channel SDK permission verdict format (preferred)
+      ws.send(JSON.stringify({
+        type: "permission_verdict",
+        request_id: msg.requestId,
+        behavior: msg.allowed ? "allow" : "deny",
+      }));
     }
     sendResponse({ ok: true });
     return true;

@@ -1,0 +1,23 @@
+{
+  "name": "@gettalon/channels",
+  "version": "1.1.0",
+  "description": "Universal channel MCP server with 21+ platform adapters (Telegram, Discord, Slack, WhatsApp, etc.) using Talon Channel SDK",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@gettalon/channels-sdk": "^1.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

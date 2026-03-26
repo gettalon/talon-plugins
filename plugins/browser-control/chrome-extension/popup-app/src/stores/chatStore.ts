@@ -41,6 +41,14 @@ export interface SubagentProgressEntry {
   timestamp: number
 }
 
+export interface HookEvent {
+  hookEventName: string
+  data: Record<string, unknown>
+  receivedAt: number
+}
+
+export type ClientMode = 'chat' | 'monitor' | 'full' | 'custom'
+
 interface ChatState {
   messages: DisplayMessage[]
   permissions: PermissionRequest[]
@@ -71,6 +79,12 @@ interface ChatState {
   /** Live progress entries per subagent, keyed by call_id */
   subagentProgress: Record<string, SubagentProgressEntry[]>
   showConfigSheet: boolean
+  /** Channel SDK hook events */
+  hookEvents: HookEvent[]
+  /** Channel SDK client mode */
+  clientMode: ClientMode
+  allowsChat: boolean
+  allowsPermissions: boolean
 
   // Actions
   addMessage: (msg: DisplayMessage) => void
@@ -113,6 +127,11 @@ interface ChatState {
   addSubagentProgress: (callId: string, entry: SubagentProgressEntry) => void
   clearSubagentProgress: (callId: string) => void
   setShowConfigSheet: (v: boolean) => void
+  addHookEvent: (event: HookEvent) => void
+  clearHookEvents: () => void
+  setClientMode: (mode: ClientMode) => void
+  setAllowsChat: (v: boolean) => void
+  setAllowsPermissions: (v: boolean) => void
   reset: () => void
 }
 
@@ -145,6 +164,10 @@ const initialState = {
   cliAgents: [] as Array<{ id: string; name: string; installed: boolean }>,
   subagentProgress: {} as Record<string, SubagentProgressEntry[]>,
   showConfigSheet: false,
+  hookEvents: [] as HookEvent[],
+  clientMode: 'full' as ClientMode,
+  allowsChat: true,
+  allowsPermissions: true,
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -227,5 +250,12 @@ export const useChatStore = create<ChatState>((set) => ({
     return { subagentProgress: next }
   }),
   setShowConfigSheet: (v) => set({ showConfigSheet: v }),
+  addHookEvent: (event) => set((s) => ({
+    hookEvents: [event, ...s.hookEvents].slice(0, 100),
+  })),
+  clearHookEvents: () => set({ hookEvents: [] }),
+  setClientMode: (mode) => set({ clientMode: mode }),
+  setAllowsChat: (v) => set({ allowsChat: v }),
+  setAllowsPermissions: (v) => set({ allowsPermissions: v }),
   reset: () => set(initialState),
 }))

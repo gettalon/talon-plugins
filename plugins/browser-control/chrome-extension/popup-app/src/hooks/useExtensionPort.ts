@@ -171,6 +171,21 @@ export function useExtensionPort() {
               })
               break
 
+            case 'hook_event':
+              s.addHookEvent({
+                hookEventName: msg.hookEventName,
+                data: msg.data || {},
+                receivedAt: Date.now(),
+              })
+              break
+
+            case 'channel_connected':
+            case 'mode_changed':
+              s.setClientMode(msg.mode || 'full')
+              s.setAllowsChat(msg.allowsChat !== false)
+              s.setAllowsPermissions(msg.allowsPermissions !== false)
+              break
+
             case 'error':
               s.addMessage({
                 id: `e-${Date.now()}`, role: 'system',

@@ -26,6 +26,25 @@
       ]
     },
     {
+      "name": "channels",
+      "source": "./plugins/channels",
+      "description": "Universal channel server — connect any client via WebSocket. Full hook event forwarding, permission relay, bidirectional chat.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Talon"
+      },
+      "category": "channels",
+      "keywords": [
+        "channels",
+        "websocket",
+        "hooks",
+        "permissions",
+        "chat",
+        "relay",
+        "universal"
+      ]
+    },
+    {
       "name": "computer-use",
       "source": "./plugins/computer-use",
       "description": "Control macOS desktop \u2014 mouse, keyboard, screenshots, windows, displays, clipboard. Native Quartz automation via usecomputer CLI.",

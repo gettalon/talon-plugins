@@ -5,6 +5,7 @@ set -euo pipefail
 
 REPO_RAW="https://raw.githubusercontent.com/gettalon/talon-plugins/master"
 MCP_PKG="@gettalon/mcp@2"
+CHANNELS_SDK="@gettalon/channels-sdk@1"
 
 G='\033[32m' C='\033[36m' D='\033[2m' B='\033[1m' R='\033[0m'
 ok()   { echo -e "  ${G}✓${R} $1"; }
@@ -130,20 +131,27 @@ fi
 
 add_json_mcp() {
   local file="$1"; mkdir -p "$(dirname "$file")"
-  if [ -f "$file" ] && grep -q "talon-browser" "$file" 2>/dev/null; then ok "MCP ready"; return; fi
+  if [ -f "$file" ] && grep -q "talon-browser" "$file" 2>/dev/null && grep -q "talon-channels" "$file" 2>/dev/null; then ok "MCP ready"; return; fi
   python3 -c "
 import json,os;f='$file'
 cfg=json.load(open(f)) if os.path.exists(f) else {}
-cfg.setdefault('mcpServers',{})['talon-browser']={'command':'npx','args':['-y','${MCP_PKG}']}
+s=cfg.setdefault('mcpServers',{})
+s['talon-browser']={'command':'npx','args':['-y','${MCP_PKG}']}
+s['talon-channels']={'command':'npx','args':['-y','${CHANNELS_SDK}','--server']}
 json.dump(cfg,open(f,'w'),indent=2)" 2>/dev/null
-  ok "MCP added"
+  ok "MCP added (browser + channels)"
 }
 
 add_toml_mcp() {
   local file="$1"; mkdir -p "$(dirname "$file")"
-  if [ -f "$file" ] && grep -q "talon-browser" "$file" 2>/dev/null; then ok "MCP ready"; return; fi
-  printf '\n[mcp_servers.talon-browser]\ncommand = "npx"\nargs = ["-y", "%s"]\n' "${MCP_PKG}" >> "$file"
-  ok "MCP added"
+  if [ -f "$file" ] && grep -q "talon-browser" "$file" 2>/dev/null && grep -q "talon-channels" "$file" 2>/dev/null; then ok "MCP ready"; return; fi
+  if ! grep -q "talon-browser" "$file" 2>/dev/null; then
+    printf '\n[mcp_servers.talon-browser]\ncommand = "npx"\nargs = ["-y", "%s"]\n' "${MCP_PKG}" >> "$file"
+  fi
+  if ! grep -q "talon-channels" "$file" 2>/dev/null; then
+    printf '\n[mcp_servers.talon-channels]\ncommand = "npx"\nargs = ["-y", "%s", "--server"]\n' "${CHANNELS_SDK}" >> "$file"
+  fi
+  ok "MCP added (browser + channels)"
 }
 
 declare -A SKILL_SRC=(
@@ -184,7 +192,7 @@ for t in "${TOOLS[@]}"; do
           { claude plugin marketplace add gettalon/talon-plugins 2>/dev/null && ok "Marketplace added"; }
         NAMES=$(curl -fsSL "${REPO_RAW}/.claude-plugin/marketplace.json" 2>/dev/null | \
           python3 -c "import sys,json;[print(p['name']) for p in json.load(sys.stdin).get('plugins',[])]" 2>/dev/null)
-        [ -z "$NAMES" ] && NAMES="web computer-use ai-dispatch autoresearch gitlab-scrum"
+        [ -z "$NAMES" ] && NAMES="web channels computer-use ai-dispatch autoresearch gitlab-scrum"
         for p in $NAMES; do
           claude plugin list 2>/dev/null | grep -q "${p}@gettalon-talon-plugins" && ok "$p" || \
             { claude plugin install "${p}@gettalon-talon-plugins" 2>/dev/null && ok "$p" || info "$p — /plugin install ${p}@gettalon-talon-plugins"; }
