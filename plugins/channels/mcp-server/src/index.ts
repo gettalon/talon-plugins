@@ -77,7 +77,8 @@ async function main(): Promise<void> {
 async function startPlatformChannel(channel: Exclude<ChannelType, "websocket">): Promise<void> {
   process.stderr.write(`[talon-channels] Starting platform channel: ${channel}\n`);
 
-  const mod = await import("@gettalon/channels-sdk/channels");
+  // @ts-ignore - channels subpath export
+  const mod = await import("@gettalon/channels-sdk/channels") as any;
 
   const creators: Record<string, (() => Promise<{ channel: ChannelServer; cleanup: () => void }>) | undefined> = {
     telegram: mod.createTelegramChannel,
@@ -128,15 +129,15 @@ async function startPlatformChannel(channel: Exclude<ChannelType, "websocket">):
 
 async function startWebSocketChannel(): Promise<void> {
   // Dynamic imports for WebSocket-only dependencies
-  const { createServer as createHttpServer } = await import("node:http");
-  const { WebSocketServer, WebSocket } = await import("ws");
+  const http = await import("node:http");
+  const createHttpServer = http.createServer;
+  const wsMod = await import("ws");
+  const WebSocketServer = wsMod.WebSocketServer;
+  const WebSocket = wsMod.WebSocket;
   const { randomUUID } = await import("node:crypto");
   const { mkdirSync, writeFileSync, unlinkSync } = await import("node:fs");
   const { join } = await import("node:path");
   const { homedir } = await import("node:os");
-
-  type IncomingMessage = import("node:http").IncomingMessage;
-  type ServerResponse = import("node:http").ServerResponse;
 
   const PORT = parseInt(process.env.TALON_CHANNELS_PORT ?? "21568", 10);
   const TALON_DIR = join(homedir(), ".talon");
@@ -230,7 +231,7 @@ async function startWebSocketChannel(): Promise<void> {
 
   // ─── HTTP Routes ───────────────────────────────────────────────────
 
-  function handleHttp(req: IncomingMessage, res: ServerResponse): void {
+  function handleHttp(req: any, res: any): void {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
