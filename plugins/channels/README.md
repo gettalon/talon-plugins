@@ -4,6 +4,18 @@ Universal channel plugin for Claude Code. Connect **any** client — via the bui
 
 Built on the [`@gettalon/channels-sdk`](https://www.npmjs.com/package/@gettalon/channels-sdk).
 
+## Install
+
+```bash
+/plugin install channels@gettalon-talon-plugins
+```
+
+During research preview (channels require dev mode):
+
+```bash
+claude --dangerously-load-development-channels plugin:channels@gettalon-talon-plugins
+```
+
 ## Features
 
 - **22 channel adapters** — WebSocket (default) + 21 platform-specific channels
@@ -40,19 +52,6 @@ Built on the [`@gettalon/channels-sdk`](https://www.npmjs.com/package/@gettalon/
 | `zalo` | @gettalon/channels-sdk | Zalo Official Account API |
 | `zalouser` | @gettalon/channels-sdk | Zalo User API |
 
-## Quick Start
-
-```bash
-# Install via Talon setup
-curl -fsSL https://raw.githubusercontent.com/gettalon/talon-plugins/master/scripts/setup.sh | bash
-```
-
-Or install manually in Claude Code:
-
-```bash
-/plugin install channels@gettalon-talon-plugins
-```
-
 ## Choosing a Channel
 
 Set the `TALON_CHANNEL` environment variable to pick which adapter to use. The default is `websocket`.
@@ -62,8 +61,8 @@ Set the `TALON_CHANNEL` environment variable to pick which adapter to use. The d
 ```json
 {
   "channels": {
-    "command": "node",
-    "args": ["path/to/mcp-server/dist/index.js"],
+    "command": "npx",
+    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
     "env": {
       "TALON_CHANNEL": "telegram"
     }

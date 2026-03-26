@@ -1,6 +1,6 @@
 {
   "channels": {
-    "command": "node",
-    "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"]
+    "command": "npx",
+    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"]
   }
 }

@@ -4,8 +4,8 @@
     "args": ["-y", "@gettalon/mcp@2"]
   },
   "channels": {
-    "command": "node",
-    "args": ["${CLAUDE_PLUGIN_ROOT}/../channels/mcp-server/dist/index.js"],
+    "command": "npx",
+    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
     "env": {
       "TALON_CHANNEL": "telegram",
       "TELEGRAM_BOT_TOKEN": "8794726577:AAFCtL4wsR_1_IpyUagG8wPTuoAmJN4qJ18"

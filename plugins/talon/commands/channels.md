@@ -12,7 +12,7 @@ Help the user choose and configure which channel adapter to use with the Talon C
 During the research preview, channels require the official allowlist. To use talon-channels:
 
 ```bash
-claude --dangerously-load-development-channels plugin:talon-channels@gettalon-claude-plugins
+claude --dangerously-load-development-channels plugin:channels@gettalon-talon-plugins
 ```
 
 The `plugin:` prefix tells Claude Code to load this channel plugin and bypass the allowlist check.
@@ -76,8 +76,8 @@ The default configuration works out of the box:
 ```json
 {
   "channels": {
-    "command": "node",
-    "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"]
+    "command": "npx",
+    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"]
   }
 }
 ```
@@ -89,8 +89,8 @@ Update the plugin's `.mcp.json` to set the channel and required env vars:
 ```json
 {
   "channels": {
-    "command": "node",
-    "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"],
+    "command": "npx",
+    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
     "env": {
       "TALON_CHANNEL": "telegram",
       "TELEGRAM_BOT_TOKEN": "your-bot-token-here"
@@ -144,15 +144,15 @@ To use multiple channels simultaneously (e.g., WebSocket + Telegram), create sep
 ```json
 {
   "channels-ws": {
-    "command": "node",
-    "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"],
+    "command": "npx",
+    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
     "env": {
       "TALON_CHANNEL": "websocket"
     }
   },
   "channels-telegram": {
-    "command": "node",
-    "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"],
+    "command": "npx",
+    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
     "env": {
       "TALON_CHANNEL": "telegram",
       "TELEGRAM_BOT_TOKEN": "your-bot-token-here"
@@ -209,8 +209,8 @@ Update the talon plugin's `.mcp.json` with your credentials:
 ```json
 {
   "channels": {
-    "command": "node",
-    "args": ["${CLAUDE_PLUGIN_ROOT}/../channels/mcp-server/dist/index.js"],
+    "command": "npx",
+    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
     "env": {
       "TALON_CHANNEL": "telegram",
       "TELEGRAM_BOT_TOKEN": "YOUR_TOKEN_FROM_STEP_1"

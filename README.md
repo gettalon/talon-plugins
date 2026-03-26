@@ -46,6 +46,7 @@ Stop there. You'll know if this is for you.
 | **computer-use** | macOS desktop automation — mouse, keyboard, windows | `/plugin install computer-use@gettalon-talon-plugins` |
 | **ai-dispatch** | Route tasks to 7 AI backends (Doubao, DeepSeek, GLM...) | `/plugin install ai-dispatch@gettalon-talon-plugins` |
 | **gitlab-scrum** | GitLab Scrum — issues, sprints, boards, wiki via glab | `/plugin install gitlab-scrum@gettalon-talon-plugins` |
+| **channels** | 22 channel adapters — WebSocket, Telegram, Discord, Slack, etc. | `/plugin install channels@gettalon-talon-plugins` |
 | **autoresearch** | Autonomous edit-test-measure loop | `/plugin install autoresearch@gettalon-talon-plugins` |
 
 ---
@@ -146,6 +147,30 @@ Iteratively edit, test, measure, keep/discard. Autonomous optimization with any 
 /autoresearch src/model.py accuracy --budget 10m --provider ark
 ```
 
+### Channels — 22 platform adapters
+
+Connect Claude Code to any messaging platform. WebSocket (default) for custom integrations, or use built-in adapters for Telegram, Discord, Slack, WhatsApp, and 17 more.
+
+```bash
+/plugin install channels@gettalon-talon-plugins
+
+# Development mode (research preview)
+claude --dangerously-load-development-channels plugin:channels@gettalon-talon-plugins
+```
+
+| Channel | What it does |
+|---------|-------------|
+| `websocket` | Universal WebSocket server — browser, mobile, desktop clients |
+| `telegram` | Telegram Bot API |
+| `discord` | Discord bot |
+| `slack` | Slack Bot (Socket Mode) |
+| `whatsapp` | WhatsApp Business API |
+| `imessage` | iMessage (macOS only) |
+| `msteams` | Microsoft Teams |
+| + 15 more | IRC, Matrix, Signal, LINE, Feishu, Twitch, Nostr... |
+
+Built on [`@gettalon/channels-sdk`](https://www.npmjs.com/package/@gettalon/channels-sdk).
+
 ### Two-Way Chat — Chrome side panel channel
 
 Talk to Claude from Chrome. See what Claude is doing in real-time.
@@ -211,7 +236,7 @@ Open the browser console, navigate to my app, and show me any JavaScript errors
 |---|---|---|---|---|
 | Real Chrome | Yes (extension) | Yes (Puppeteer) | Headless | No |
 | Desktop control | Yes (native) | No | No | Yes (cloud) |
-| Two-way chat | Yes (channels) | No | No | No |
+| Two-way chat | Yes (22 adapters) | No | No | No |
 | Live tool display | Yes (side panel) | No | No | No |
 | Local machine | Yes | Yes | Yes | No (cloud VM) |
 | Claude Code plugin | Yes | No | No | No |

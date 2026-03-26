@@ -4,6 +4,9 @@
   "description": "Universal channel MCP server with 21+ platform adapters (Telegram, Discord, Slack, WhatsApp, etc.) using Talon Channel SDK",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "talon-channels": "dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"

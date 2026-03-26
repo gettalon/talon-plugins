@@ -16,7 +16,7 @@ The channels MCP server should already be configured. Verify:
 
 ```bash
 # Check if the channels server is in MCP config
-cat ~/.claude/settings.json 2>/dev/null | grep -A 3 "talon-channels" || echo "Not configured"
+cat ~/.claude/settings.json 2>/dev/null | grep -A 3 "channels" || echo "Not configured"
 ```
 
 ### 2. Check Server Health

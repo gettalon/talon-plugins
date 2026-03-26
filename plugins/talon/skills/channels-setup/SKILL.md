@@ -12,7 +12,7 @@ Help the user set up the Talon Channels universal server so any client can conne
 During the research preview, channels require an allowlist. To use talon-channels:
 
 ```bash
-claude --dangerously-load-development-channels plugin:talon-channels@gettalon-claude-plugins
+claude --dangerously-load-development-channels plugin:channels@gettalon-talon-plugins
 ```
 
 The `plugin:` prefix tells Claude Code to load this channel plugin and bypass the allowlist check.
@@ -44,8 +44,8 @@ Set `TALON_CHANNEL` env var in the plugin's `.mcp.json`:
 ```json
 {
   "channels": {
-    "command": "node",
-    "args": ["${CLAUDE_PLUGIN_ROOT}/../channels/mcp-server/dist/index.js"]
+    "command": "npx",
+    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"]
   }
 }
 ```
@@ -54,8 +54,8 @@ Set `TALON_CHANNEL` env var in the plugin's `.mcp.json`:
 ```json
 {
   "channels": {
-    "command": "node",
-    "args": ["${CLAUDE_PLUGIN_ROOT}/../channels/mcp-server/dist/index.js"],
+    "command": "npx",
+    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
     "env": {
       "TALON_CHANNEL": "telegram",
       "TELEGRAM_BOT_TOKEN": "your-bot-token"
