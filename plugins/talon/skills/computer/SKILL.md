@@ -1,7 +1,8 @@
 ---
-name: talon-computer
-description: Control the macOS desktop — move mouse, click, type, press keys, scroll, drag, take screenshots, list windows/displays, clipboard. Uses usecomputer CLI for native Quartz event automation. For desktop UI automation, form filling, app control, and AI computer-use.
-allowed-tools: Bash
+name: computer
+description: "Control the macOS desktop — move mouse, click, type, press keys, scroll, drag, take screenshots, list windows/displays, clipboard. Uses usecomputer CLI for native Quartz event automation."
+user-invocable: true
+allowed-tools: [Bash]
 ---
 
 # Computer Use

@@ -1,6 +1,7 @@
 ---
-description: Guide users through Chrome extension setup for browser control. Use when user asks about setup, installing the extension, connecting Chrome, or when browser_control tools return "No browser connected".
-disable-model-invocation: false
+name: web-setup
+description: "Guide users through Chrome extension setup for browser control. Use when user asks about setup, installing the extension, connecting Chrome, or when browser_control tools return 'No browser connected'."
+user-invocable: true
 allowed-tools: [Bash]
 ---
 

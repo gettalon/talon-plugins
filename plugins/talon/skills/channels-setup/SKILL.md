@@ -1,6 +1,7 @@
 ---
-description: Guide users through setting up the universal Talon Channels server. Use when user asks about channels setup, connecting clients, or when channel tools return errors.
-disable-model-invocation: false
+name: channels-setup
+description: "Guide users through setting up the universal Talon Channels server. Use when user asks about channels setup, connecting clients, or when channel tools return errors."
+user-invocable: true
 allowed-tools: [Bash]
 ---
 
