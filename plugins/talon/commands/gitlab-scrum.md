@@ -1,7 +1,5 @@
 ---
-name: gitlab-scrum
 description: "GitLab Scrum management - create/manage issues, labels, milestones, and boards. Use when user says: create issue, list issues, move issue, add label, scrum, kanban, backlog, or task tracking."
-user-invocable: true
 ---
 
 # GitLab Scrum

@@ -1,7 +1,5 @@
 ---
-name: computer
 description: "Control the macOS desktop — move mouse, click, type, press keys, scroll, drag, take screenshots, list windows/displays, clipboard. Uses usecomputer CLI for native Quartz event automation."
-user-invocable: true
 allowed-tools: [Bash]
 ---
 

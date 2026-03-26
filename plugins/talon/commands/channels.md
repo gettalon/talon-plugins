@@ -1,7 +1,5 @@
 ---
-name: channels
 description: "Guide users through choosing and configuring a channel adapter (WebSocket, Telegram, Discord, Slack, etc.). Use when user asks about channel setup, switching channels, or configuring TALON_CHANNEL."
-user-invocable: true
 allowed-tools: [Bash, Read, Edit]
 ---
 

@@ -1,7 +1,5 @@
 ---
-name: ai-dispatch
 description: "Dispatch subagents to multiple AI backends. Usage: dispatch <backend> \"prompt\". Backends: ark-code, ark-minimax, ark-kimi, ark-deepseek, glm, ark-doubao, ark-auto"
-user-invocable: true
 ---
 
 # AI Dispatch

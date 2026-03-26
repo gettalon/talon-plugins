@@ -1,7 +1,5 @@
 ---
-name: gitlab-board
 description: "Manage GitLab issue boards - create boards, add columns, move issues between columns. Use when user says: board, kanban, move issue, board setup, columns."
-user-invocable: true
 ---
 
 # GitLab Board Management

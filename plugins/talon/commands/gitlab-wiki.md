@@ -1,7 +1,5 @@
 ---
-name: gitlab-wiki
 description: "Manage GitLab wiki pages - create, update, list, delete wiki pages with Mermaid diagrams. Use when user says: wiki, documentation, write wiki, update wiki, add diagram."
-user-invocable: true
 ---
 
 # GitLab Wiki Management

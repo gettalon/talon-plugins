@@ -1,7 +1,5 @@
 ---
-name: autoresearch
 description: "Autonomous research loop — iteratively edit, test, measure, keep/discard. Usage: /autoresearch <file> <metric> [--budget 5m] [--provider ark]"
-user-invocable: true
 ---
 
 # Autoresearch — Autonomous Experiment Loop

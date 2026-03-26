@@ -1,7 +1,5 @@
 ---
-name: ai-dispatch-setup
 description: "Setup or reconfigure AI dispatch backends. Run when dispatch fails or to add new API keys."
-user-invocable: true
 ---
 
 # AI Dispatch Setup

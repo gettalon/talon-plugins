@@ -1,7 +1,5 @@
 ---
-name: gitlab-sprint
 description: "Plan and manage GitLab sprints - create sprint milestones, populate with issues from backlog, track progress, close sprints. Use when user says: sprint, sprint planning, new sprint, close sprint, sprint review."
-user-invocable: true
 ---
 
 # GitLab Sprint Management
