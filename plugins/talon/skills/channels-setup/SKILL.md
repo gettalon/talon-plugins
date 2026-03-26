@@ -12,7 +12,7 @@ Help the user set up the Talon Channels universal server so any client can conne
 During the research preview, channels require an allowlist. To use talon-channels:
 
 ```bash
-claude --dangerously-load-development-channels plugin:channels@gettalon-talon-plugins
+claude --dangerously-load-development-channels plugin:talon-channels@gettalon-claude-plugins
 ```
 
 The `plugin:` prefix tells Claude Code to load this channel plugin and bypass the allowlist check.

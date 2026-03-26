@@ -12,7 +12,7 @@ Help the user choose and configure which channel adapter to use with the Talon C
 During the research preview, channels require the official allowlist. To use talon-channels:
 
 ```bash
-claude --dangerously-load-development-channels plugin:channels@gettalon-talon-plugins
+claude --dangerously-load-development-channels plugin:talon-channels@gettalon-claude-plugins
 ```
 
 The `plugin:` prefix tells Claude Code to load this channel plugin and bypass the allowlist check.
