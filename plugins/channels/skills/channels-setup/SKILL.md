@@ -8,6 +8,16 @@ allowed-tools: [Bash, Read, Edit]
 
 Help the user choose and configure which channel adapter to use with the Talon Channels plugin. There are 22 options: the default WebSocket server plus 21 platform-specific adapters.
 
+## Development Mode
+
+During the research preview, channels require the official allowlist. To use talon-channels:
+
+```bash
+claude --dangerously-load-development-channels plugin:channels@gettalon-talon-plugins
+```
+
+The `plugin:` prefix tells Claude Code to load this channel plugin and bypass the allowlist check.
+
 ## Available Channels
 
 | Channel | Env Var Value | Typical Required Env Vars |

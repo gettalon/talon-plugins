@@ -9,13 +9,13 @@ Help the user set up the Talon Channels universal server so any client can conne
 
 ## Development Mode
 
-During the research preview, channels require an allowlist. To bypass this for development:
+During the research preview, channels require an allowlist. To use talon-channels:
 
 ```bash
-claude --dangerously-load-development-channels
+claude --dangerously-load-development-channels plugin:channels@gettalon-talon-plugins
 ```
 
-This allows any channel plugin to register without being on the official allowlist.
+The `plugin:` prefix tells Claude Code to load this channel plugin and bypass the allowlist check.
 
 ## Channel Types
 
