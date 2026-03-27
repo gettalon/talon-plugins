@@ -4,6 +4,7 @@
 #
 # Usage:
 #   dispatch <backend> "prompt"                    # simple mode
+#   dispatch <backend> --yolo "prompt"             # simple mode (skip permissions)
 #   dispatch <backend> claude [args...] "prompt"   # explicit mode
 #   dispatch <backend> codex "prompt"              # codex mode
 #   dispatch --list                                # list backends
@@ -142,6 +143,7 @@ register_dispatch() {
 }
 
 # --- Main ---
+YOLO=false
 case "${1:-}" in
   --list)
     list_backends
@@ -161,8 +163,13 @@ case "${1:-}" in
     env | grep -E '^(ANTHROPIC_|OPENAI_|CLAUDE_CODE_)' | sed 's/^/export /'
     exit $?
     ;;
+  --yolo)
+    YOLO=true
+    shift
+    ;;
   "")
     echo "Usage: dispatch <backend> \"prompt\""
+    echo "       dispatch <backend> --yolo \"prompt\""
     echo "       dispatch <backend> claude [args...]"
     echo "       dispatch --list"
     echo "       dispatch --models <backend>"
@@ -200,7 +207,10 @@ case "$TOOL" in
     RAW_LOG="/tmp/ark-dispatch-$$.jsonl"
 
     # Build command args
-    CMD_ARGS=(-p --dangerously-skip-permissions --output-format stream-json --verbose --json-schema "$SCHEMA")
+    CMD_ARGS=(-p --output-format stream-json --verbose --json-schema "$SCHEMA")
+    if $YOLO; then
+      CMD_ARGS=(--dangerously-skip-permissions "${CMD_ARGS[@]}")
+    fi
     if [[ "${DISPATCH_DISABLE_MCP:-}" == "1" ]]; then
       EMPTY_MCP="/tmp/dispatch-empty-mcp.json"
       echo '{"mcpServers":{}}' > "$EMPTY_MCP"
@@ -223,7 +233,11 @@ echo "[dispatch] $DISPATCH_ID ($BACKEND/$TOOL)" >&2
 
 case "$TOOL" in
   claude)
-    exec claude "$@"
+    if $YOLO; then
+      exec claude --dangerously-skip-permissions "$@"
+    else
+      exec claude "$@"
+    fi
     ;;
   claude-interactive)
     PIPE_DIR="/tmp/ark-pipes"
@@ -246,7 +260,11 @@ case "$TOOL" in
     kill $KEEP_OPEN_PID 2>/dev/null
     ;;
   codex)
-    exec codex --model "$ANTHROPIC_DEFAULT_OPUS_MODEL" "$@"
+    if $YOLO; then
+      exec codex --dangerously-bypass-approvals-and-sandbox --model "$ANTHROPIC_DEFAULT_OPUS_MODEL" "$@"
+    else
+      exec codex --model "$ANTHROPIC_DEFAULT_OPUS_MODEL" "$@"
+    fi
     ;;
   *)
     echo "Unknown tool: $TOOL (use 'claude', 'claude-interactive', or 'codex')" >&2
