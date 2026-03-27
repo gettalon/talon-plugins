@@ -5,10 +5,12 @@
 # Usage:
 #   dispatch <backend> "prompt"                    # simple mode
 #   dispatch <backend> --yolo "prompt"             # simple mode (skip permissions)
+#   dispatch <backend> --agent <name> "prompt"     # agent mode (loads SOUL.md + config)
 #   dispatch <backend> claude [args...] "prompt"   # explicit mode
 #   dispatch <backend> codex "prompt"              # codex mode
 #   dispatch --list                                # list backends
 #   dispatch --models <backend>                    # list models
+#   dispatch --agents                              # list available agents
 
 set -euo pipefail
 
@@ -129,6 +131,142 @@ if aliases:
 "
 }
 
+# --- Agent Resolution ---
+
+AGENTS_DIR="$HOME/.talon/agents"
+
+resolve_agent() {
+  local name="$1"
+  local agent_dir="$AGENTS_DIR/$name"
+
+  if [[ ! -d "$agent_dir" ]]; then
+    echo "Agent not found: $name" >&2
+    echo "Available agents:" >&2
+    list_agents >&2
+    return 1
+  fi
+
+  local yaml="$agent_dir/AGENT.yaml"
+  if [[ ! -f "$yaml" ]]; then
+    echo "Agent missing AGENT.yaml: $agent_dir" >&2
+    return 1
+  fi
+
+  # Parse agent config with python3
+  eval "$(python3 -c "
+import yaml, os
+
+agent_dir = '$agent_dir'
+with open(os.path.join(agent_dir, 'AGENT.yaml')) as f:
+    cfg = yaml.safe_load(f)
+
+# System prompt from SOUL.md
+soul_file = os.path.join(agent_dir, cfg.get('soul', 'SOUL.md'))
+if os.path.exists(soul_file):
+    print(f'AGENT_SOUL_FILE=\"{soul_file}\"')
+
+# Max turns
+dispatch = cfg.get('dispatch', {})
+max_turns = dispatch.get('max_turns', 15)
+print(f'AGENT_MAX_TURNS={max_turns}')
+
+# Model preference
+model = cfg.get('model', 'sonnet')
+print(f'AGENT_MODEL=\"{model}\"')
+
+# Backend override
+backend = cfg.get('backend')
+if backend:
+    print(f'AGENT_BACKEND=\"{backend}\"')
+
+# Allowed tools
+tools = cfg.get('allowed_tools')
+if tools and isinstance(tools, list):
+    print(f'AGENT_ALLOWED_TOOLS=\"{chr(44).join(tools)}\"')
+
+# Agent name and description
+print(f'AGENT_NAME=\"{cfg.get(\"name\", \"\")}\"')
+print(f'AGENT_DESC=\"{cfg.get(\"description\", \"\")}\"')
+
+# Skill files — collect all SKILL.md content for system prompt injection
+skills_dir = os.path.join(agent_dir, 'skills')
+skill_content = []
+if os.path.isdir(skills_dir):
+    for sname in sorted(os.listdir(skills_dir)):
+        skill_file = os.path.join(skills_dir, sname, 'SKILL.md')
+        if os.path.isfile(skill_file):
+            skill_content.append(sname)
+if skill_content:
+    print(f'AGENT_SKILLS=\"{chr(44).join(skill_content)}\"')
+    print(f'AGENT_SKILLS_DIR=\"{skills_dir}\"')
+" 2>/dev/null)" || return 1
+}
+
+build_agent_system_prompt() {
+  local prompt=""
+
+  # SOUL.md content
+  if [[ -n "${AGENT_SOUL_FILE:-}" && -f "$AGENT_SOUL_FILE" ]]; then
+    prompt="$(cat "$AGENT_SOUL_FILE")"
+  fi
+
+  # Append skill summaries
+  if [[ -n "${AGENT_SKILLS_DIR:-}" && -n "${AGENT_SKILLS:-}" ]]; then
+    prompt="$prompt
+
+## Available Skills
+
+Use these workflows when relevant to the user's query:
+"
+    IFS=',' read -ra skills <<< "$AGENT_SKILLS"
+    for skill in "${skills[@]}"; do
+      local skill_file="$AGENT_SKILLS_DIR/$skill/SKILL.md"
+      if [[ -f "$skill_file" ]]; then
+        # Extract name and description from frontmatter
+        local desc
+        desc="$(python3 -c "
+import yaml, sys
+with open('$skill_file') as f:
+    content = f.read()
+# Parse frontmatter
+if content.startswith('---'):
+    end = content.index('---', 3)
+    fm = yaml.safe_load(content[3:end])
+    print(f\"- **{fm.get('name','$skill')}**: {fm.get('description','')}\")
+else:
+    print(f'- **$skill**')
+" 2>/dev/null)"
+        prompt="$prompt
+$desc"
+      fi
+    done
+  fi
+
+  echo "$prompt"
+}
+
+list_agents() {
+  if [[ ! -d "$AGENTS_DIR" ]]; then
+    echo "  (no agents directory at $AGENTS_DIR)"
+    return
+  fi
+
+  for agent_dir in "$AGENTS_DIR"/*/; do
+    [[ -d "$agent_dir" ]] || continue
+    local name
+    name="$(basename "$agent_dir")"
+    local yaml="$agent_dir/AGENT.yaml"
+    if [[ -f "$yaml" ]]; then
+      local desc model
+      desc="$(python3 -c "import yaml; d=yaml.safe_load(open('$yaml')); print(d.get('description',''))" 2>/dev/null)"
+      model="$(python3 -c "import yaml; d=yaml.safe_load(open('$yaml')); print(d.get('model','sonnet'))" 2>/dev/null)"
+      local skill_count=0
+      [[ -d "$agent_dir/skills" ]] && skill_count=$(find "$agent_dir/skills" -name "SKILL.md" | wc -l | tr -d ' ')
+      echo "  $name ($model, ${skill_count} skills) — $desc"
+    fi
+  done
+}
+
 # --- Task Registry ---
 
 register_dispatch() {
@@ -158,6 +296,11 @@ case "${1:-}" in
     list_models "${2:?Usage: dispatch --models <backend>}"
     exit 0
     ;;
+  --agents)
+    echo "Available agents (~/.talon/agents/):"
+    list_agents
+    exit 0
+    ;;
   --env)
     configure_backend "${2:?Usage: dispatch --env <backend>}" || exit 1
     env | grep -E '^(ANTHROPIC_|OPENAI_|CLAUDE_CODE_)' | sed 's/^/export /'
@@ -169,16 +312,49 @@ case "${1:-}" in
     ;;
   "")
     echo "Usage: dispatch <backend> \"prompt\""
+    echo "       dispatch <backend> --agent <name> \"prompt\""
     echo "       dispatch <backend> --yolo \"prompt\""
     echo "       dispatch <backend> claude [args...]"
     echo "       dispatch --list"
     echo "       dispatch --models <backend>"
+    echo "       dispatch --agents"
     exit 1
     ;;
 esac
 
 BACKEND="$1"
 shift 1
+
+# Parse --agent flag (can appear after backend)
+AGENT_NAME=""
+REMAINING_ARGS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --agent)
+      AGENT_NAME="${2:-}"
+      [[ -n "$AGENT_NAME" ]] || { echo "Usage: --agent <name>" >&2; exit 1; }
+      shift 2
+      ;;
+    --yolo)
+      YOLO=true
+      shift
+      ;;
+    *)
+      REMAINING_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+set -- "${REMAINING_ARGS[@]}"
+
+# Load agent config if specified
+if [[ -n "$AGENT_NAME" ]]; then
+  resolve_agent "$AGENT_NAME" || exit 1
+  # Override backend if agent specifies one
+  if [[ -n "${AGENT_BACKEND:-}" ]]; then
+    BACKEND="$AGENT_BACKEND"
+  fi
+fi
 
 configure_backend "$BACKEND" || {
   echo "Unknown backend: $BACKEND" >&2
@@ -211,6 +387,19 @@ case "$TOOL" in
     if $YOLO; then
       CMD_ARGS=(--dangerously-skip-permissions "${CMD_ARGS[@]}")
     fi
+    # Agent mode: inject system prompt, max turns, allowed tools
+    if [[ -n "$AGENT_NAME" ]]; then
+      local sys_prompt
+      sys_prompt="$(build_agent_system_prompt)"
+      if [[ -n "$sys_prompt" ]]; then
+        CMD_ARGS+=(--system-prompt "$sys_prompt")
+      fi
+      CMD_ARGS+=(--max-turns "${AGENT_MAX_TURNS:-15}")
+      if [[ -n "${AGENT_ALLOWED_TOOLS:-}" ]]; then
+        CMD_ARGS+=(--allowedTools "$AGENT_ALLOWED_TOOLS")
+      fi
+      echo "[agent] $AGENT_NAME — ${AGENT_DESC:-}" >&2
+    fi
     if [[ "${DISPATCH_DISABLE_MCP:-}" == "1" ]]; then
       EMPTY_MCP="/tmp/dispatch-empty-mcp.json"
       echo '{"mcpServers":{}}' > "$EMPTY_MCP"
@@ -233,11 +422,23 @@ echo "[dispatch] $DISPATCH_ID ($BACKEND/$TOOL)" >&2
 
 case "$TOOL" in
   claude)
+    EXTRA_ARGS=()
     if $YOLO; then
-      exec claude --dangerously-skip-permissions "$@"
-    else
-      exec claude "$@"
+      EXTRA_ARGS+=(--dangerously-skip-permissions)
     fi
+    if [[ -n "$AGENT_NAME" ]]; then
+      local sys_prompt
+      sys_prompt="$(build_agent_system_prompt)"
+      if [[ -n "$sys_prompt" ]]; then
+        EXTRA_ARGS+=(--system-prompt "$sys_prompt")
+      fi
+      EXTRA_ARGS+=(--max-turns "${AGENT_MAX_TURNS:-15}")
+      if [[ -n "${AGENT_ALLOWED_TOOLS:-}" ]]; then
+        EXTRA_ARGS+=(--allowedTools "$AGENT_ALLOWED_TOOLS")
+      fi
+      echo "[agent] $AGENT_NAME — ${AGENT_DESC:-}" >&2
+    fi
+    exec claude "${EXTRA_ARGS[@]}" "$@"
     ;;
   claude-interactive)
     PIPE_DIR="/tmp/ark-pipes"
