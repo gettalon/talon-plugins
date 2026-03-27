@@ -1,6 +1,6 @@
 {
   "cdp": {
     "command": "npx",
-    "args": ["-y", "@gettalon/mcp@2"]
+    "args": ["-y", "@gettalon/mcp@2", "talon-mcp"]
   }
 }
