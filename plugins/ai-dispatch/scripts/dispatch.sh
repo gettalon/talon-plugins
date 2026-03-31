@@ -314,6 +314,7 @@ case "${1:-}" in
     echo "Usage: dispatch <backend> \"prompt\""
     echo "       dispatch <backend> --agent <name> \"prompt\""
     echo "       dispatch <backend> --yolo \"prompt\""
+    echo "       dispatch <backend> --channels <plugin> \"prompt\""
     echo "       dispatch <backend> claude [args...]"
     echo "       dispatch --list"
     echo "       dispatch --models <backend>"
@@ -327,6 +328,7 @@ shift 1
 
 # Parse --agent flag (can appear after backend)
 AGENT_NAME=""
+CHANNELS_PLUGIN=""
 REMAINING_ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -338,6 +340,11 @@ while [[ $# -gt 0 ]]; do
     --yolo)
       YOLO=true
       shift
+      ;;
+    --channels)
+      CHANNELS_PLUGIN="${2:-}"
+      [[ -n "$CHANNELS_PLUGIN" ]] || { echo "Usage: --channels <plugin>" >&2; exit 1; }
+      shift 2
       ;;
     *)
       REMAINING_ARGS+=("$1")
@@ -405,6 +412,9 @@ case "$TOOL" in
       echo '{"mcpServers":{}}' > "$EMPTY_MCP"
       CMD_ARGS+=(--bare --strict-mcp-config --mcp-config "$EMPTY_MCP")
     fi
+    if [[ -n "$CHANNELS_PLUGIN" ]]; then
+      CMD_ARGS+=(--dangerously-load-development-channels "$CHANNELS_PLUGIN")
+    fi
     CMD_ARGS+=(-- "$PROMPT")
 
     if [[ -f "$RENDERER" ]]; then
@@ -425,6 +435,9 @@ case "$TOOL" in
     EXTRA_ARGS=()
     if $YOLO; then
       EXTRA_ARGS+=(--dangerously-skip-permissions)
+    fi
+    if [[ -n "$CHANNELS_PLUGIN" ]]; then
+      EXTRA_ARGS+=(--dangerously-load-development-channels "$CHANNELS_PLUGIN")
     fi
     if [[ -n "$AGENT_NAME" ]]; then
       local sys_prompt
