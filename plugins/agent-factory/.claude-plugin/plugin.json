@@ -1,7 +1,7 @@
 {
-  "name": "talon-agent-factory",
+  "name": "agent-factory",
   "description": "Create domain-specific AI agents, skills, and workflows. Build reusable agents for any domain — finance, security, DevOps, legal, documentation, and more.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": {
     "name": "Talon"
   },
