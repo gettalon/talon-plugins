@@ -48,7 +48,7 @@
       "name": "talon-hub",
       "source": "./plugins/hub",
       "description": "Universal hub — connect any client via WebSocket. Full hook event forwarding, permission relay, bidirectional chat.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "author": {
         "name": "Talon"
       },
@@ -141,6 +141,25 @@
         "wiki",
         "sprint",
         "glab"
+      ]
+    },
+    {
+      "name": "talon-agent-factory",
+      "source": "./plugins/agent-factory",
+      "description": "Create domain-specific AI agents, skills, and workflows. Build reusable agents for any domain — finance, security, DevOps, legal, documentation, and more.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Talon"
+      },
+      "category": "ai",
+      "keywords": [
+        "agent",
+        "agent-factory",
+        "skill",
+        "workflow",
+        "soul",
+        "domain-agent",
+        "orchestration"
       ]
     },
     {
