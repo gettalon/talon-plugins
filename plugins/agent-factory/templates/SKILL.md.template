@@ -1,0 +1,36 @@
+---
+name: {{SKILL_NAME}}
+description: {{SKILL_DESCRIPTION}}
+---
+
+# {{SKILL_TITLE}}
+
+## Workflow Checklist
+
+Copy and track progress:
+```
+{{SKILL_NAME}} Progress:
+- [ ] Step 1: {{STEP_1}}
+- [ ] Step 2: {{STEP_2}}
+- [ ] Step 3: {{STEP_3}}
+- [ ] Step N: Present results
+```
+
+## Step 1: {{STEP_1}}
+
+{{STEP_1_INSTRUCTIONS}}
+
+## Step 2: {{STEP_2}}
+
+{{STEP_2_INSTRUCTIONS}}
+
+## Step 3: {{STEP_3}}
+
+{{STEP_3_INSTRUCTIONS}}
+
+## Output Format
+
+Present a structured summary including:
+1. **Summary**: Key findings
+2. **Data**: Supporting evidence
+3. **Caveats**: Limitations and assumptions

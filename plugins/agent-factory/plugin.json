@@ -1,0 +1,21 @@
+{
+  "name": "agent-factory",
+  "version": "0.2.0",
+  "description": "Create domain-specific AI agents, skills, and workflows. Like superpowers but for building agents like Dexter.",
+  "talon": {
+    "plugin": true,
+    "skills": [
+      "skills/create-agent",
+      "skills/create-skill",
+      "skills/create-workflow",
+      "skills/compose-agent",
+      "skills/install-agent",
+      "skills/list-agents",
+      "skills/use-agent"
+    ],
+    "scripts": [
+      "scripts/validate-workflow.sh",
+      "scripts/manage-workflow.sh"
+    ]
+  }
+}

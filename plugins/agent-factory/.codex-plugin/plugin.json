@@ -1,0 +1,9 @@
+{
+  "name": "agent-factory",
+  "version": "0.2.0",
+  "description": "Create domain-specific AI agents, skills, and workflows. Like superpowers but for building agents like Dexter.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agent Factory"
+  }
+}
