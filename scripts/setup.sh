@@ -21,8 +21,8 @@ skip() { echo -e "  ${D}– $1${R}"; }
 info() { echo -e "  ${D}$1${R}"; }
 
 # ─── Data ───
-SKILLS=("all" "gitlab-scrum" "gitlab-sprint" "gitlab-board" "gitlab-wiki" "ai-dispatch" "autoresearch")
-S_LABEL=("Toggle all" "GitLab issues/labels/milestones" "Sprint planning" "Kanban boards" "Wiki + Mermaid" "AI routing (7 backends)" "Edit-test-measure loop")
+SKILLS=("all" "hub" "gitlab-scrum" "gitlab-sprint" "gitlab-board" "gitlab-wiki" "ai-dispatch" "autoresearch")
+S_LABEL=("Toggle all" "Channel hub (Telegram, Discord, Slack, WhatsApp, +10)" "GitLab issues/labels/milestones" "Sprint planning" "Kanban boards" "Wiki + Mermaid" "AI routing (7 backends)" "Edit-test-measure loop")
 
 TOOLS=("all" "codex" "cursor" "windsurf" "gemini" "claude")
 T_LABEL=("Toggle all" "" "" "" "" "")
@@ -166,6 +166,7 @@ declare -A SKILL_SRC=(
   [gitlab-scrum]="gitlab-scrum/gitlab-scrum" [gitlab-sprint]="gitlab-scrum/gitlab-sprint"
   [gitlab-board]="gitlab-scrum/gitlab-board" [gitlab-wiki]="gitlab-scrum/gitlab-wiki"
   [ai-dispatch]="ai-dispatch/ai-dispatch" [autoresearch]="autoresearch/autoresearch"
+  [hub]="channels/hub"
 )
 
 install_skills() {
