@@ -1,22 +1,22 @@
 ---
-description: Guide users through setting up the universal Talon Channels server. Use when user asks about channels setup, connecting clients, or when channel tools return errors.
+description: Guide users through setting up the universal Talon Hub server. Use when user asks about hub setup, connecting clients, or when hub tools return errors.
 disable-model-invocation: false
 allowed-tools: [Bash]
 ---
 
 # Channels Setup Guide
 
-Help the user set up the Talon Channels universal server so any client can connect to Claude Code via WebSocket.
+Help the user set up the Talon Hub universal server so any client can connect to Claude Code via WebSocket.
 
 ## Steps
 
 ### 1. Verify Installation
 
-The channels MCP server should already be configured. Verify:
+The hub MCP server should already be configured. Verify:
 
 ```bash
-# Check if the channels server is in MCP config
-cat ~/.claude/settings.json 2>/dev/null | grep -A 3 "channels" || echo "Not configured"
+# Check if the hub server is in MCP config
+cat ~/.claude/settings.json 2>/dev/null | grep -A 3 "hub" || echo "Not configured"
 ```
 
 ### 2. Check Server Health
@@ -36,7 +36,7 @@ curl -s -X POST http://localhost:21568/auth/local | python3 -c "import sys,json;
 Or read from discovery file:
 
 ```bash
-cat ~/.talon/channels_token 2>/dev/null || echo "No token file"
+cat ~/.talon/hub_token 2>/dev/null || echo "No token file"
 ```
 
 ### 4. Connect a Client
@@ -114,8 +114,8 @@ The server receives all 23 Claude Code hook events and forwards them to connecte
 
 ### 8. Troubleshooting
 
-**Server not running:** Make sure Claude Code is started with the channels plugin loaded.
+**Server not running:** Make sure Claude Code is started with the hub plugin loaded.
 
-**Connection refused:** Check the port — default is 21568, but may be different if that port was in use. Check `~/.talon/channels_port`.
+**Connection refused:** Check the port — default is 21568, but may be different if that port was in use. Check `~/.talon/hub_port`.
 
-**Invalid token:** Get a fresh token via `POST /auth/local` or `~/.talon/channels_token`.
+**Invalid token:** Get a fresh token via `POST /auth/local` or `~/.talon/hub_token`.

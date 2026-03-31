@@ -1,19 +1,19 @@
 ---
-description: Guide users through choosing and configuring a channel adapter (WebSocket, Telegram, Discord, Slack, etc.). Use when user asks about channel setup, switching channels, or configuring TALON_CHANNEL.
+description: Guide users through choosing and configuring a channel adapter (WebSocket, Telegram, Discord, Slack, etc.). Use when user asks about hub setup, switching channels, or configuring TALON_CHANNEL.
 disable-model-invocation: false
 allowed-tools: [Bash, Read, Edit]
 ---
 
 # Channel Adapter Setup Guide
 
-Help the user choose and configure which channel adapter to use with the Talon Channels plugin. There are 22 options: the default WebSocket server plus 21 platform-specific adapters.
+Help the user choose and configure which channel adapter to use with the Talon Hub plugin. There are 22 options: the default WebSocket server plus 21 platform-specific adapters.
 
 ## Development Mode
 
-During the research preview, channels require the official allowlist. To use talon-channels:
+During the research preview, hub requires the official allowlist. To use talon-hub:
 
 ```bash
-claude --dangerously-load-development-channels plugin:channels@gettalon-talon-plugins
+claude --dangerously-load-development-hub plugin:hub@gettalon-talon-plugins
 ```
 
 The `plugin:` prefix tells Claude Code to load this channel plugin and bypass the allowlist check.
@@ -76,7 +76,7 @@ The default configuration works out of the box:
 
 ```json
 {
-  "channels": {
+  "hub": {
     "command": "npx",
     "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"]
   }
@@ -89,7 +89,7 @@ Update the plugin's `.mcp.json` to set the channel and required env vars:
 
 ```json
 {
-  "channels": {
+  "hub": {
     "command": "npx",
     "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
     "env": {
@@ -126,8 +126,8 @@ curl -s http://localhost:21568/health 2>/dev/null || echo "Server not running â€
 
 For **platform adapters**, the server logs will show the channel starting:
 ```
-[talon-channels] Starting platform channel: telegram
-[talon-channels] Platform channel "telegram" is ready
+[talon-hub] Starting platform channel: telegram
+[talon-hub] Platform channel "telegram" is ready
 ```
 
 If the adapter fails to start, it usually means a required env var is missing. Check the logs for error messages.
@@ -140,18 +140,18 @@ To switch back to the default WebSocket mode, either:
 
 ### 7. Using Multiple Channels
 
-To use multiple channels simultaneously (e.g., WebSocket + Telegram), create separate MCP server entries in `.mcp.json`:
+To use multiple hub adapters simultaneously (e.g., WebSocket + Telegram), create separate MCP server entries in `.mcp.json`:
 
 ```json
 {
-  "channels-ws": {
+  "hub-ws": {
     "command": "npx",
     "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
     "env": {
       "TALON_CHANNEL": "websocket"
     }
   },
-  "channels-telegram": {
+  "hub-telegram": {
     "command": "npx",
     "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
     "env": {

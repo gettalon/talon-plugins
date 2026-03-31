@@ -1,6 +1,0 @@
-{
-  "channels": {
-    "command": "npx",
-    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"]
-  }
-}

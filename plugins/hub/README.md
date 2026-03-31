@@ -1,4 +1,4 @@
-# Talon Channels
+# Talon Hub
 
 Universal channel plugin for Claude Code. Connect **any** client — via the built-in WebSocket server or through 21 platform-specific adapters including Telegram, Discord, Slack, WhatsApp, and more.
 
@@ -7,13 +7,13 @@ Built on the [`@gettalon/channels-sdk`](https://www.npmjs.com/package/@gettalon/
 ## Install
 
 ```bash
-/plugin install channels@gettalon-talon-plugins
+/plugin install hub@gettalon-talon-plugins
 ```
 
-During research preview (channels require dev mode):
+During research preview (hub require dev mode):
 
 ```bash
-claude --dangerously-load-development-channels plugin:channels@gettalon-talon-plugins
+claude --dangerously-load-development-channels plugin:hub@gettalon-talon-plugins
 ```
 
 ## Features
@@ -60,7 +60,7 @@ Set the `TALON_CHANNEL` environment variable to pick which adapter to use. The d
 
 ```json
 {
-  "channels": {
+  "hub": {
     "command": "npx",
     "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
     "env": {
@@ -90,7 +90,7 @@ ws://localhost:21568/ws?token=TOKEN&mode=full&name=my-client
 
 Get your token:
 ```bash
-cat ~/.talon/channels_token
+cat ~/.talon/hub_token
 # or
 curl -s -X POST http://localhost:21568/auth/local
 ```
