@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # Talon Plugins — cross-tool setup (MCP + Skills)
 # Usage: curl -fsSL https://raw.githubusercontent.com/gettalon/talon-plugins/master/scripts/setup.sh | bash
+
+# Require bash 4+ for associative arrays
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+  echo "Error: This script requires bash 4+. You have bash ${BASH_VERSION}" >&2
+  echo "Run with: bash4 /path/to/setup.sh  or  curl ... | /bin/bash4" >&2
+  exit 1
+fi
+
 set -euo pipefail
 
 REPO_RAW="https://raw.githubusercontent.com/gettalon/talon-plugins/master"
