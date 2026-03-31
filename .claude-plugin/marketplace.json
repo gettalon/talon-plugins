@@ -11,7 +11,7 @@
     {
       "name": "talon",
       "source": "./plugins/talon",
-      "description": "All-in-one Talon plugin — browser control, channels (22 adapters), computer use, AI dispatch, autoresearch, GitLab scrum. Use /talon:* commands.",
+      "description": "All-in-one Talon plugin — browser control, hub (22 adapters), computer use, AI dispatch, autoresearch, GitLab scrum. Use /talon:* commands.",
       "version": "1.0.0",
       "author": {
         "name": "Talon"
@@ -20,7 +20,7 @@
       "keywords": [
         "talon",
         "browser",
-        "channels",
+        "hub",
         "computer-use",
         "ai-dispatch",
         "autoresearch",
@@ -45,16 +45,16 @@
       ]
     },
     {
-      "name": "talon-channels",
-      "source": "./plugins/channels",
-      "description": "Universal channel server — connect any client via WebSocket. Full hook event forwarding, permission relay, bidirectional chat.",
+      "name": "talon-hub",
+      "source": "./plugins/hub",
+      "description": "Universal hub — connect any client via WebSocket. Full hook event forwarding, permission relay, bidirectional chat.",
       "version": "1.0.0",
       "author": {
         "name": "Talon"
       },
-      "category": "channels",
+      "category": "hub",
       "keywords": [
-        "channels",
+        "hub",
         "websocket",
         "hooks",
         "permissions",

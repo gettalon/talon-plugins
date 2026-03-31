@@ -46,7 +46,7 @@ Stop there. You'll know if this is for you.
 | **computer-use** | macOS desktop automation — mouse, keyboard, windows | `/plugin install computer-use@gettalon-talon-plugins` |
 | **ai-dispatch** | Route tasks to 7 AI backends (Doubao, DeepSeek, GLM...) | `/plugin install ai-dispatch@gettalon-talon-plugins` |
 | **gitlab-scrum** | GitLab Scrum — issues, sprints, boards, wiki via glab | `/plugin install gitlab-scrum@gettalon-talon-plugins` |
-| **channels** | 22 channel adapters — WebSocket, Telegram, Discord, Slack, etc. | `/plugin install channels@gettalon-talon-plugins` |
+| **channels** | 22 channel adapters — WebSocket, Telegram, Discord, Slack, etc. | `/plugin install hub@gettalon-talon-plugins` |
 | **autoresearch** | Autonomous edit-test-measure loop | `/plugin install autoresearch@gettalon-talon-plugins` |
 
 ---
@@ -147,15 +147,15 @@ Iteratively edit, test, measure, keep/discard. Autonomous optimization with any 
 /autoresearch src/model.py accuracy --budget 10m --provider ark
 ```
 
-### Channels — 22 platform adapters
+### Hub — 22 platform adapters
 
 Connect Claude Code to any messaging platform. WebSocket (default) for custom integrations, or use built-in adapters for Telegram, Discord, Slack, WhatsApp, and 17 more.
 
 ```bash
-/plugin install channels@gettalon-talon-plugins
+/plugin install hub@gettalon-talon-plugins
 
 # Development mode (research preview)
-claude --dangerously-load-development-channels plugin:channels@gettalon-talon-plugins
+claude --dangerously-load-development-channels plugin:hub@gettalon-talon-plugins
 ```
 
 | Channel | What it does |
@@ -176,7 +176,7 @@ Built on [`@gettalon/channels-sdk`](https://www.npmjs.com/package/@gettalon/chan
 Talk to Claude from Chrome. See what Claude is doing in real-time.
 
 ```bash
-# Enable chat (Claude Code channels, research preview)
+# Enable chat (Claude Code hub, research preview)
 claude --dangerously-load-development-channels plugin:browser-control@gettalon-talon-plugins
 ```
 

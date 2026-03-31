@@ -139,34 +139,34 @@ fi
 
 add_json_mcp() {
   local file="$1"; mkdir -p "$(dirname "$file")"
-  if [ -f "$file" ] && grep -q "talon-browser" "$file" 2>/dev/null && grep -q "talon-channels" "$file" 2>/dev/null; then ok "MCP ready"; return; fi
+  if [ -f "$file" ] && grep -q "talon-browser" "$file" 2>/dev/null && grep -q "talon-hub" "$file" 2>/dev/null; then ok "MCP ready"; return; fi
   python3 -c "
 import json,os;f='$file'
 cfg=json.load(open(f)) if os.path.exists(f) else {}
 s=cfg.setdefault('mcpServers',{})
 s['talon-browser']={'command':'npx','args':['-y','${MCP_PKG}']}
-s['talon-channels']={'command':'npx','args':['-y','${CHANNELS_SDK}','--server']}
+s['talon-hub']={'command':'npx','args':['-y','${CHANNELS_SDK}','--server']}
 json.dump(cfg,open(f,'w'),indent=2)" 2>/dev/null
-  ok "MCP added (browser + channels)"
+  ok "MCP added (browser + hub)"
 }
 
 add_toml_mcp() {
   local file="$1"; mkdir -p "$(dirname "$file")"
-  if [ -f "$file" ] && grep -q "talon-browser" "$file" 2>/dev/null && grep -q "talon-channels" "$file" 2>/dev/null; then ok "MCP ready"; return; fi
+  if [ -f "$file" ] && grep -q "talon-browser" "$file" 2>/dev/null && grep -q "talon-hub" "$file" 2>/dev/null; then ok "MCP ready"; return; fi
   if ! grep -q "talon-browser" "$file" 2>/dev/null; then
     printf '\n[mcp_servers.talon-browser]\ncommand = "npx"\nargs = ["-y", "%s"]\n' "${MCP_PKG}" >> "$file"
   fi
-  if ! grep -q "talon-channels" "$file" 2>/dev/null; then
-    printf '\n[mcp_servers.talon-channels]\ncommand = "npx"\nargs = ["-y", "%s", "--server"]\n' "${CHANNELS_SDK}" >> "$file"
+  if ! grep -q "talon-hub" "$file" 2>/dev/null; then
+    printf '\n[mcp_servers.talon-hub]\ncommand = "npx"\nargs = ["-y", "%s", "--server"]\n' "${CHANNELS_SDK}" >> "$file"
   fi
-  ok "MCP added (browser + channels)"
+  ok "MCP added (browser + hub)"
 }
 
 declare -A SKILL_SRC=(
   [gitlab-scrum]="gitlab-scrum/gitlab-scrum" [gitlab-sprint]="gitlab-scrum/gitlab-sprint"
   [gitlab-board]="gitlab-scrum/gitlab-board" [gitlab-wiki]="gitlab-scrum/gitlab-wiki"
   [ai-dispatch]="ai-dispatch/ai-dispatch" [autoresearch]="autoresearch/autoresearch"
-  [hub]="channels/hub"
+  [hub]="hub/hub"
 )
 
 install_skills() {
@@ -174,7 +174,8 @@ install_skills() {
   for s in "${SKILLS[@]}"; do
     [ "$s" = "all" ] && continue
     [ "${S_ON[$s]}" != "1" ] && continue
-    local src="${SKILL_SRC[$s]}" plugin="${SKILL_SRC[$s]%%/*}"
+    local src="${SKILL_SRC[$s]:-}" plugin="${src%%/*}"
+    [ -z "$src" ] && { skip "$s (no source)"; continue; }
     local dir="$target/$s" file="$dir/SKILL.md"
     [ -f "$file" ] && { ok "$s"; continue; }
     mkdir -p "$dir"
