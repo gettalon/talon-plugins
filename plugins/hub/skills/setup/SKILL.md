@@ -4,7 +4,7 @@ disable-model-invocation: false
 allowed-tools: [Bash]
 ---
 
-# Channels Setup Guide
+# Hub Setup Guide
 
 Help the user set up the Talon Hub universal server so any client can connect to Claude Code via WebSocket.
 
@@ -15,36 +15,51 @@ Help the user set up the Talon Hub universal server so any client can connect to
 The hub MCP server should already be configured. Verify:
 
 ```bash
-# Check if the hub server is in MCP config
 cat ~/.claude/settings.json 2>/dev/null | grep -A 3 "hub" || echo "Not configured"
 ```
 
-### 2. Check Server Health
+### 2. Check Settings
+
+Hub reads config from `~/.talon/settings.json`:
 
 ```bash
-curl -s http://localhost:21568/health 2>/dev/null || echo "Server not running"
+cat ~/.talon/settings.json 2>/dev/null || echo "No settings — create with: mkdir -p ~/.talon && echo '{\"servers\":[{\"port\":9090}],\"access\":{\"requireApproval\":false}}' > ~/.talon/settings.json"
 ```
 
-### 3. Get Auth Token
+Key fields:
+- `servers` — Hub server instances (`port`, `url`)
+- `connections` — Remote hubs/agents to connect on startup
+- `transports` — Channel adapter configs (telegram, discord, etc.)
+- `access` — `requireApproval`, `allowlist` for agent gating
+- `aliases` — Map platform IDs to display names
+- `contacts` — Named contacts for `edge send` routing
+
+### 3. Check Server Health
+
+```bash
+edge health 2>/dev/null || curl -s http://localhost:9090/health 2>/dev/null || echo "Server not running"
+```
+
+### 4. Get Auth Token
 
 Clients need a token to connect:
-
-```bash
-curl -s -X POST http://localhost:21568/auth/local | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))"
-```
-
-Or read from discovery file:
 
 ```bash
 cat ~/.talon/hub_token 2>/dev/null || echo "No token file"
 ```
 
-### 4. Connect a Client
+Or start the server and get one:
+
+```bash
+edge server
+```
+
+### 5. Connect a Client
 
 Any WebSocket client can connect:
 
 ```
-ws://localhost:21568/ws?token=TOKEN&mode=full&name=my-client
+ws://localhost:9090/ws?token=TOKEN&mode=full&name=my-client
 ```
 
 **Mode options:**
@@ -55,47 +70,15 @@ ws://localhost:21568/ws?token=TOKEN&mode=full&name=my-client
 
 **Available categories:** chat, tools, permissions, session, notifications, subagents, lifecycle, filesystem, worktree, compact, elicitation, prompts
 
-### 5. Example: Connect from Node.js
+### 6. CLI Reference
 
-```javascript
-import WebSocket from 'ws';
-
-const token = 'YOUR_TOKEN';
-const ws = new WebSocket(`ws://localhost:21568/ws?token=${token}&mode=full&name=my-app`);
-
-ws.on('message', (data) => {
-  const msg = JSON.parse(data);
-  const payload = msg.payload;
-
-  if (payload.type === 'event' && payload.data.type === 'hook_event') {
-    console.log('Hook:', payload.data.hook_event_name, payload.data.data);
-  }
-
-  if (payload.type === 'stream') {
-    console.log('Reply:', payload.event);
-  }
-});
-
-// Send a chat message
-ws.send(JSON.stringify({
-  type: 'chat_message',
-  text: 'Hello from my app!',
-  chat_id: 'my-chat-1',
-}));
-
-// Respond to permission request
-ws.send(JSON.stringify({
-  type: 'permission_verdict',
-  request_id: 'req-123',
-  behavior: 'allow',
-}));
-```
-
-### 6. List Connected Clients
-
-```bash
-curl -s http://localhost:21568/clients | python3 -m json.tool
-```
+| Command | Description |
+|---------|-------------|
+| `edge status` | Show servers, clients, agents |
+| `edge connect <url> [name]` | Connect to remote hub/agent |
+| `edge send <target> <msg>` | Send message |
+| `edge reload` | Reload settings.json |
+| `edge health` | Health snapshot |
 
 ### 7. Hook Events
 
@@ -114,8 +97,10 @@ The server receives all 23 Claude Code hook events and forwards them to connecte
 
 ### 8. Troubleshooting
 
-**Server not running:** Make sure Claude Code is started with the hub plugin loaded.
+**Server not running:** Start with `edge server` or ensure Claude Code has the hub plugin loaded.
 
-**Connection refused:** Check the port — default is 21568, but may be different if that port was in use. Check `~/.talon/hub_port`.
+**Connection refused:** Check the port in `~/.talon/settings.json` — default is 9090.
 
-**Invalid token:** Get a fresh token via `POST /auth/local` or `~/.talon/hub_token`.
+**Invalid token:** Get a fresh token from `~/.talon/hub_token`.
+
+**Config not taking effect:** Run `edge reload` to re-read `~/.talon/settings.json`.

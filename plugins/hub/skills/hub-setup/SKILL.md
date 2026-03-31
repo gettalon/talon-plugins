@@ -13,10 +13,119 @@ Help the user choose and configure which channel adapter to use with the Talon H
 During the research preview, hub requires the official allowlist. To use talon-hub:
 
 ```bash
-claude --dangerously-load-development-hub plugin:hub@gettalon-talon-plugins
+claude --dangerously-load-development-channels plugin:hub@gettalon-talon-plugins
 ```
 
-The `plugin:` prefix tells Claude Code to load this channel plugin and bypass the allowlist check.
+The `plugin:` prefix tells Claude Code to load this hub plugin and bypass the allowlist check.
+
+## Settings: `~/.talon/settings.json`
+
+The hub reads all configuration from `~/.talon/settings.json`. Create it if it doesn't exist.
+
+### Full schema
+
+```json
+{
+  "servers": [
+    {
+      "url": "ws://localhost:9090",
+      "port": 9090
+    }
+  ],
+  "connections": [
+    {
+      "url": "unix:///tmp/talon-9090.sock",
+      "name": "remote-hub"
+    }
+  ],
+  "transports": {
+    "telegram": { "botToken": "YOUR_BOT_TOKEN" },
+    "websocket": {}
+  },
+  "access": {
+    "requireApproval": true,
+    "forceApprovalAll": false,
+    "allowlist": ["agent-name-1", "agent-name-2"]
+  },
+  "aliases": {
+    "@SomeBot": "My Claude"
+  },
+  "hooks": [
+    { "event": "onMessage", "command": "echo 'message received'" }
+  ],
+  "contacts": {
+    "alice": {
+      "name": "Alice",
+      "channels": [{ "type": "telegram", "id": "12345", "url": "telegram://12345" }]
+    }
+  },
+  "state": {
+    "chatRoutes": {},
+    "groups": {},
+    "targets": {}
+  }
+}
+```
+
+### Field reference
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `servers` | array | Hub server instances to start. Each has `url` and `port`. |
+| `connections` | array | Remote hubs or agents to connect to on startup. `url` (ws://, unix://) and `name`. |
+| `transports` | object | Channel adapter configs. Keys: `telegram`, `websocket`, `discord`, `slack`, etc. |
+| `access` | object | Access control. `requireApproval` gates new agents, `allowlist` auto-approves named agents. |
+| `aliases` | object | Map platform user IDs to display names. e.g. `"@bot": "Home Claude"` |
+| `hooks` | array | Shell commands to run on events. `{ "event": "onMessage", "command": "..." }` |
+| `contacts` | object | Named contacts with channel info for `edge send <name>` routing. |
+| `state` | object | Runtime state: `chatRoutes`, `groups`, `targets`. Managed by the hub. |
+
+### Minimal config (WebSocket only)
+
+```json
+{
+  "servers": [{ "port": 9090 }],
+  "access": { "requireApproval": false }
+}
+```
+
+### Telegram config
+
+```json
+{
+  "servers": [{ "port": 9090 }],
+  "transports": {
+    "telegram": { "botToken": "YOUR_TELEGRAM_BOT_TOKEN" }
+  },
+  "access": { "requireApproval": false }
+}
+```
+
+### Multi-connection config
+
+```json
+{
+  "servers": [{ "port": 9090 }],
+  "connections": [
+    { "url": "ws://remote-host:9090", "name": "remote-hub" },
+    { "url": "unix:///tmp/agent.sock", "name": "local-agent" }
+  ],
+  "access": { "requireApproval": true, "allowlist": ["trusted-agent"] }
+}
+```
+
+## CLI: `edge`
+
+After installing the hub, use the `edge` CLI to manage everything:
+
+| Command | Description |
+|---------|-------------|
+| `edge status` | Show servers, clients, agents, chat routes |
+| `edge connect <url> [name]` | Connect to remote hub or agent |
+| `edge reload` | Reload settings.json and reconnect |
+| `edge send <target> <msg>` | Send message to agent or contact |
+| `edge contacts` | List registered contacts |
+| `edge health` | Health snapshot |
 
 ## Available Channels
 
@@ -57,117 +166,26 @@ Ask the user which platform they want Claude Code to be reachable on. If they ar
 ### 2. Check Current Configuration
 
 ```bash
-# Check what channel is currently configured
-cat "${CLAUDE_PLUGIN_ROOT}/../.mcp.json" 2>/dev/null || echo "No .mcp.json found"
+cat ~/.talon/settings.json 2>/dev/null || echo "No settings.json found"
 ```
+
+### 3. Configure
+
+Edit `~/.talon/settings.json` to add transports, connections, and access rules. See the schema above for all options.
+
+### 4. Verify
 
 ```bash
-# Check if there's a project-level MCP config
-cat .mcp.json 2>/dev/null || echo "No project .mcp.json"
+edge reload
+edge health
 ```
 
-### 3. Configure the Channel
+### 5. Troubleshooting
 
-To switch channels, update the `.mcp.json` file to include the `TALON_CHANNEL` env var and any platform-specific credentials.
+**"Unknown channel type"**: The `TALON_CHANNEL` value does not match any supported adapter. Check spelling.
 
-#### For WebSocket (default — no changes needed):
+**"No creator function found"**: The `@gettalon/channels-sdk` version may not include this adapter yet. Update: `npm install @gettalon/channels-sdk@latest`.
 
-The default configuration works out of the box:
+**WebSocket port conflict**: If port 9090 is in use, change `servers[0].port` in settings.json.
 
-```json
-{
-  "hub": {
-    "command": "npx",
-    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"]
-  }
-}
-```
-
-#### For a platform adapter (e.g., Telegram):
-
-Update the plugin's `.mcp.json` to set the channel and required env vars:
-
-```json
-{
-  "hub": {
-    "command": "npx",
-    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
-    "env": {
-      "TALON_CHANNEL": "telegram",
-      "TELEGRAM_BOT_TOKEN": "your-bot-token-here"
-    }
-  }
-}
-```
-
-Alternatively, set env vars in the user's shell profile (`~/.zshrc`, `~/.bashrc`) so they persist:
-
-```bash
-export TALON_CHANNEL=telegram
-export TELEGRAM_BOT_TOKEN=your-bot-token-here
-```
-
-### 4. Apply the Configuration
-
-After updating the `.mcp.json` or env vars, use the Edit tool to write the changes. Then tell the user to restart Claude Code for the changes to take effect:
-
-```
-Restart Claude Code for the new channel configuration to take effect.
-Run: claude
-```
-
-### 5. Verify It Works
-
-For **WebSocket** mode:
-```bash
-# Check if server is running
-curl -s http://localhost:21568/health 2>/dev/null || echo "Server not running — start Claude Code first"
-```
-
-For **platform adapters**, the server logs will show the channel starting:
-```
-[talon-hub] Starting platform channel: telegram
-[talon-hub] Platform channel "telegram" is ready
-```
-
-If the adapter fails to start, it usually means a required env var is missing. Check the logs for error messages.
-
-### 6. Switching Back to WebSocket
-
-To switch back to the default WebSocket mode, either:
-- Remove the `TALON_CHANNEL` env var from `.mcp.json`
-- Or set it explicitly to `"websocket"`
-
-### 7. Using Multiple Channels
-
-To use multiple hub adapters simultaneously (e.g., WebSocket + Telegram), create separate MCP server entries in `.mcp.json`:
-
-```json
-{
-  "hub-ws": {
-    "command": "npx",
-    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
-    "env": {
-      "TALON_CHANNEL": "websocket"
-    }
-  },
-  "hub-telegram": {
-    "command": "npx",
-    "args": ["-y", "-p", "@gettalon/channels-sdk", "channels"],
-    "env": {
-      "TALON_CHANNEL": "telegram",
-      "TELEGRAM_BOT_TOKEN": "your-bot-token-here"
-    }
-  }
-}
-```
-
-### 8. Troubleshooting
-
-**"Unknown channel type"**: The `TALON_CHANNEL` value does not match any supported adapter. Check spelling — it must be one of: websocket, telegram, discord, slack, whatsapp, signal, imessage, irc, googlechat, line, feishu, matrix, mattermost, msteams, bluebubbles, nostr, nextcloud-talk, synology-chat, tlon, twitch, zalo, zalouser.
-
-**"No creator function found"**: The `@gettalon/channels-sdk` version may not include this adapter yet. Try updating: `npm install @gettalon/channels-sdk@latest` in the mcp-server directory.
-
-**Platform adapter won't start**: Check that all required environment variables are set. Each platform has its own requirements — see the table above for typical env vars needed.
-
-**WebSocket port conflict**: If port 21568 is in use, set `TALON_CHANNELS_PORT` to a different port, or let the server auto-select by leaving it to fail over to a random port.
+**Agent not connecting**: Check `edge status` and `edge health`. Verify the remote URL is reachable.
