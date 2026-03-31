@@ -3,6 +3,9 @@
   "version": "1.2.0",
   "type": "module",
   "bin": "./server.js",
+  "scripts": {
+    "build": "bun build server.js --bundle --outfile bundle.js --target node --minify --external sharp --external '@img/sharp-darwin-x64' --external libsignal --external protobufjs --external botbuilder --external botbuilder-stdlib --external discord.js --external '@slack/bolt' --external '@slack/web-api' --external '@whiskeysockets/baileys' --external jimp --external node-telegram-bot-api --external telegraf --external grammy --external irc --external matrix-js-sdk --external node-line-messaging-api"
+  },
   "dependencies": {
     "@gettalon/channels-sdk": "^1.1.0",
     "@modelcontextprotocol/sdk": "^1.12.0",

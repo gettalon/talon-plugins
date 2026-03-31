@@ -1,6 +1,6 @@
 {
   "hub": {
     "command": "node",
-    "args": ["${pluginPath}/mcp-server/server.js"]
+    "args": ["${pluginPath}/mcp-server/bundle.js"]
   }
 }
