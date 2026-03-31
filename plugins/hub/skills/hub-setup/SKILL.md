@@ -35,20 +35,21 @@ The hub reads all configuration from `~/.talon/settings.json`. Create it if it d
   "connections": [
     {
       "url": "unix:///tmp/talon-9090.sock",
-      "name": "remote-hub"
+      "name": "remote-hub",
+      "transport": "unix"
     }
   ],
   "transports": {
     "telegram": { "botToken": "YOUR_BOT_TOKEN" },
+    "discord": { "botToken": "YOUR_DISCORD_TOKEN" },
+    "slack": { "botToken": "xoxb-...", "appToken": "xapp-..." },
     "websocket": {}
   },
   "access": {
     "requireApproval": true,
     "forceApprovalAll": false,
-    "allowlist": ["agent-name-1", "agent-name-2"]
-  },
-  "aliases": {
-    "@SomeBot": "My Claude"
+    "allowlist": ["agent-name-1", "agent-name-2"],
+    "denylist": ["bad-agent"]
   },
   "hooks": [
     { "event": "onMessage", "command": "echo 'message received'" }
@@ -57,6 +58,13 @@ The hub reads all configuration from `~/.talon/settings.json`. Create it if it d
     "alice": {
       "name": "Alice",
       "channels": [{ "type": "telegram", "id": "12345", "url": "telegram://12345" }]
+    },
+    "bob": {
+      "name": "Bob",
+      "channels": [
+        { "type": "slack", "id": "U123", "url": "slack://U123" },
+        { "type": "telegram", "id": "67890", "url": "telegram://67890" }
+      ]
     }
   },
   "state": {
@@ -72,13 +80,42 @@ The hub reads all configuration from `~/.talon/settings.json`. Create it if it d
 | Field | Type | Description |
 |-------|------|-------------|
 | `servers` | array | Hub server instances to start. Each has `url` and `port`. |
-| `connections` | array | Remote hubs or agents to connect to on startup. `url` (ws://, unix://) and `name`. |
-| `transports` | object | Channel adapter configs. Keys: `telegram`, `websocket`, `discord`, `slack`, etc. |
-| `access` | object | Access control. `requireApproval` gates new agents, `allowlist` auto-approves named agents. |
-| `aliases` | object | Map platform user IDs to display names. e.g. `"@bot": "Home Claude"` |
+| `connections` | array | Remote hubs or agents to connect to on startup. `url` (ws://, unix://), `name`, optional `transport` and `config`. |
+| `transports` | object | Channel adapter configs. Keys are channel types: `telegram`, `websocket`, `discord`, `slack`, etc. Each adapter has its own config fields. |
+| `access` | object | Access control. `requireApproval` gates new agents, `allowlist` auto-approves named agents, `denylist` blocks agents. |
 | `hooks` | array | Shell commands to run on events. `{ "event": "onMessage", "command": "..." }` |
-| `contacts` | object | Named contacts with channel info for `edge send <name>` routing. |
-| `state` | object | Runtime state: `chatRoutes`, `groups`, `targets`. Managed by the hub. |
+| `contacts` | object | Named contacts with **many-to-many** channel info. Each contact can have multiple channels. Used for `edge send <name>` routing. |
+| `state` | object | Runtime state: `chatRoutes`, `groups`, `targets`. Managed by the hub — don't edit manually. |
+
+### Many-to-many routing
+
+Contacts can have multiple channels. Messages to a contact are routed to their first available channel:
+
+```json
+"bob": {
+  "name": "Bob",
+  "channels": [
+    { "type": "telegram", "id": "123", "url": "telegram://123" },
+    { "type": "slack", "id": "U456", "url": "slack://U456" },
+    { "type": "websocket", "id": "bob-ws", "url": "ws://localhost" }
+  ]
+}
+```
+
+Hub servers can accept multiple transports simultaneously — one hub can serve WebSocket, Telegram, Discord, and Slack all at once.
+
+### Transport config reference
+
+| Transport | Config fields | Also reads env var |
+|-----------|--------------|--------------------|
+| `telegram` | `botToken`, `allowedChats`, `accessPath`, `downloadPath` | `TELEGRAM_BOT_TOKEN` |
+| `discord` | `botToken` | `DISCORD_BOT_TOKEN` |
+| `slack` | `botToken`, `appToken` | `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN` |
+| `whatsapp` | `apiToken`, `phoneNumberId` | `WHATSAPP_API_TOKEN` |
+| `signal` | `cliPath`, `phoneNumber` | `SIGNAL_CLI_PATH` |
+| `matrix` | `homeserver`, `accessToken` | `MATRIX_HOMESERVER` |
+| `websocket` | *(none needed)* | — |
+| `irc` | `server`, `nick`, `channel` | `IRC_SERVER` |
 
 ### Minimal config (WebSocket only)
 
@@ -96,6 +133,30 @@ The hub reads all configuration from `~/.talon/settings.json`. Create it if it d
   "servers": [{ "port": 9090 }],
   "transports": {
     "telegram": { "botToken": "YOUR_TELEGRAM_BOT_TOKEN" }
+  },
+  "access": { "requireApproval": false }
+}
+```
+
+Or use the env var instead of settings.json:
+
+```bash
+export TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN
+```
+
+The SDK checks `transports.telegram.botToken` first, then falls back to `TELEGRAM_BOT_TOKEN` env var.
+
+### Multi-transport config
+
+One hub serving WebSocket + Telegram + Discord simultaneously:
+
+```json
+{
+  "servers": [{ "port": 9090 }],
+  "transports": {
+    "telegram": { "botToken": "YOUR_TELEGRAM_BOT_TOKEN" },
+    "discord": { "botToken": "YOUR_DISCORD_BOT_TOKEN" },
+    "websocket": {}
   },
   "access": { "requireApproval": false }
 }
