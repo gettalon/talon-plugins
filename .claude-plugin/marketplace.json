@@ -5,13 +5,13 @@
     "email": "hunter.h9898@gmail.com"
   },
   "metadata": {
-    "description": "Official Talon plugins for Claude Code — browser control, automation, and more"
+    "description": "Official Talon plugins for Claude Code \u2014 browser control, automation, and more"
   },
   "plugins": [
     {
       "name": "talon",
       "source": "./plugins/talon",
-      "description": "All-in-one Talon plugin — browser control, hub (22 adapters), computer use, AI dispatch, autoresearch, GitLab scrum. Use /talon:* commands.",
+      "description": "All-in-one Talon plugin \u2014 browser control, hub (22 adapters), computer use, AI dispatch, autoresearch, GitLab scrum. Use /talon:* commands.",
       "version": "1.0.0",
       "author": {
         "name": "Talon"
@@ -47,8 +47,8 @@
     {
       "name": "hub",
       "source": "./plugins/hub",
-      "description": "Universal hub — connect any client via WebSocket. Full hook event forwarding, permission relay, bidirectional chat.",
-      "version": "1.2.6",
+      "description": "Universal hub \u2014 connect any client via WebSocket. Full hook event forwarding, permission relay, bidirectional chat.",
+      "version": "1.2.7",
       "author": {
         "name": "Talon"
       },
@@ -66,7 +66,7 @@
     {
       "name": "talon-computer-use",
       "source": "./plugins/computer-use",
-      "description": "Control macOS desktop — mouse, keyboard, screenshots, windows, displays, clipboard. Native Quartz automation via usecomputer CLI.",
+      "description": "Control macOS desktop \u2014 mouse, keyboard, screenshots, windows, displays, clipboard. Native Quartz automation via usecomputer CLI.",
       "version": "1.0.0",
       "author": {
         "name": "Talon"
@@ -85,7 +85,7 @@
     {
       "name": "talon-autoresearch",
       "source": "./plugins/autoresearch",
-      "description": "Autonomous experiment loop — iteratively edit, test, measure, keep/discard. Inspired by Karpathy's autoresearch.",
+      "description": "Autonomous experiment loop \u2014 iteratively edit, test, measure, keep/discard. Inspired by Karpathy's autoresearch.",
       "version": "0.1.0",
       "author": {
         "name": "Talon"
@@ -125,7 +125,7 @@
     {
       "name": "talon-gitlab-scrum",
       "source": "./plugins/gitlab-scrum",
-      "description": "GitLab Scrum management via glab CLI — issues, milestones, boards, wiki, sprint planning.",
+      "description": "GitLab Scrum management via glab CLI \u2014 issues, milestones, boards, wiki, sprint planning.",
       "version": "0.1.0",
       "author": {
         "name": "Talon"
@@ -146,7 +146,7 @@
     {
       "name": "agent-factory",
       "source": "./plugins/agent-factory",
-      "description": "Create domain-specific AI agents, skills, and workflows. Build reusable agents for any domain — finance, security, DevOps, legal, documentation, and more.",
+      "description": "Create domain-specific AI agents, skills, and workflows. Build reusable agents for any domain \u2014 finance, security, DevOps, legal, documentation, and more.",
       "version": "0.2.1",
       "author": {
         "name": "Talon"
@@ -165,7 +165,7 @@
     {
       "name": "talon-adversarial-coding",
       "source": "./plugins/adversarial-coding",
-      "description": "GAN-style multi-agent coding — Planner, Generator, Evaluator work in adversarial loop. Inspired by Anthropic's research.",
+      "description": "GAN-style multi-agent coding \u2014 Planner, Generator, Evaluator work in adversarial loop. Inspired by Anthropic's research.",
       "version": "0.1.0",
       "author": {
         "name": "Talon"
