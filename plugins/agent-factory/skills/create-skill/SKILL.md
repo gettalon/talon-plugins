@@ -1,6 +1,6 @@
 ---
 name: create-skill
-description: Design and write a SKILL.md workflow for a specific domain task. Use when the user wants to create a repeatable, step-by-step skill like Dexter's DCF valuation — a structured workflow an agent can follow to complete a complex task.
+description: Design and write a SKILL.md workflow for a specific domain task. Use when the user wants to create a repeatable, step-by-step skill — a structured workflow an agent can follow to complete a complex task.
 user-invocable: true
 ---
 
@@ -17,7 +17,7 @@ A skill is NOT just instructions. It's a **repeatable workflow** with:
 - Validation/sanity checks (catch errors before presenting)
 - Structured output format (consistent results)
 
-**Reference**: Dexter's DCF valuation skill is the gold standard — it tells the agent exactly which tools to call, what data to extract, how to calculate, how to validate, and how to present results.
+A well-structured skill tells the agent exactly which tools to call, what data to extract, how to calculate, how to validate, and how to present results.
 
 ## Process
 

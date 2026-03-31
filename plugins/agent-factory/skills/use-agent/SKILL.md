@@ -1,6 +1,6 @@
 ---
 name: use-agent
-description: Load and activate a domain agent directly in Claude Code. Reads the agent's SOUL.md identity, skills, and workflows from ~/.talon/agents/ and applies them to the current session. Use when the user says "use dexter", "load agent X", "be dexter", "activate agent", or wants to switch to a domain agent persona.
+description: Load and activate a domain agent directly in Claude Code. Reads the agent's SOUL.md identity, skills, and workflows from ~/.talon/agents/ and applies them to the current session. Use when the user says "use <agent-name>", "load agent X", "be <agent-name>", "activate agent", or wants to switch to a domain agent persona.
 user-invocable: true
 ---
 
@@ -12,7 +12,7 @@ Load an agent from `~/.talon/agents/<name>/` and activate its identity, skills, 
 
 ### Step 1: Identify the Agent
 
-If the user specified an agent name (e.g., `/use-agent dexter`), use that.
+If the user specified an agent name (e.g., `/use-agent my-agent`), use that.
 Otherwise, scan `~/.talon/agents/` and list available agents for the user to pick.
 
 $ARGUMENTS

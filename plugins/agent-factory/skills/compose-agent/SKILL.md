@@ -112,8 +112,8 @@ dispatch <backend> claude \
 
 **As a shell alias (suggest adding to .zshrc):**
 ```bash
-alias dexter='dispatch claude --system-prompt "$(cat ~/agents/dexter/SOUL.md)" --max-turns 15 -p'
-# Usage: dexter "analyze AAPL"
+alias my-agent='dispatch claude --system-prompt "$(cat ~/agents/my-agent/SOUL.md)" --max-turns 15 -p'
+# Usage: my-agent "analyze AAPL"
 ```
 
 ### Step 5: Verify

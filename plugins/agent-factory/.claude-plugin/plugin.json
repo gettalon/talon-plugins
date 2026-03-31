@@ -1,6 +1,6 @@
 {
   "name": "talon-agent-factory",
-  "description": "Create domain-specific AI agents, skills, and workflows. Build agents like Dexter (financial research) for any domain — security, DevOps, legal, documentation, etc.",
+  "description": "Create domain-specific AI agents, skills, and workflows. Build reusable agents for any domain — finance, security, DevOps, legal, documentation, and more.",
   "version": "0.2.0",
   "author": {
     "name": "Talon"

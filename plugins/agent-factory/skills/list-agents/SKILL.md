@@ -70,7 +70,7 @@ If the user asks "what's missing?" or wants to improve an agent:
 ```
 Found 3 agents:
 
-  dexter          Financial research agent (opus)
+  analyst         Financial research agent (opus)
                   Skills: dcf-valuation, fundamental-analysis, sec-filing-reader
                   Workflows: research-pipeline
 

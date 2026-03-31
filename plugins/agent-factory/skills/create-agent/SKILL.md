@@ -22,7 +22,7 @@ Ask these questions **one at a time**. Adapt based on answers.
    - a) Analytical and precise (like a researcher)
    - b) Friendly and explanatory (like a tutor)
    - c) Terse and action-oriented (like an operator)
-   - d) Opinionated with strong convictions (like Dexter)
+   - d) Opinionated with strong convictions
    - e) Custom — describe it
 
 4. **Data Sources**: "What information does this agent need access to?"
@@ -51,7 +51,7 @@ Based on discovery, design these components:
 - Who is this agent? Give it a name and personality
 - What philosophy guides its decisions?
 - What does it value? What does it refuse to do?
-- Reference: Dexter's SOUL.md gives the agent conviction and a point of view
+- Give the agent conviction and a clear point of view
 
 **Configuration (AGENT.yaml)**:
 - Model selection (sonnet for speed, opus for depth, haiku for lightweight)
@@ -63,7 +63,7 @@ Based on discovery, design these components:
 - Each skill = one repeatable workflow the agent can execute
 - Design 2-4 core skills based on the domain
 - Each skill has: name, description, step-by-step checklist, output format
-- Reference: Dexter's DCF skill is a good example of a well-structured skill
+- Each skill should have a clear trigger, step-by-step checklist, and structured output
 
 **Workflows (YAML state machines)** (if needed):
 - Multi-step processes with state transitions
@@ -115,7 +115,7 @@ After scaffolding:
 
 | Agent | Domain | Core Skills |
 |-------|--------|-------------|
-| Dexter | Financial Research | DCF valuation, fundamental analysis, stock screening, SEC filing analysis |
+| Analyst | Financial Research | DCF valuation, fundamental analysis, stock screening, SEC filing analysis |
 | Sentinel | Security Audit | Dependency scanning, OWASP check, secret detection, compliance review |
 | Scribe | Documentation | API doc generation, changelog writing, README scaffolding, diagram creation |
 | Conductor | DevOps | Deployment pipeline, incident response, infrastructure review, cost optimization |
@@ -123,7 +123,7 @@ After scaffolding:
 
 ## Key Principles
 
-- **Opinionated > Generic**: An agent with a point of view (like Dexter's Buffett/Munger philosophy) is more useful than a generic assistant
+- **Opinionated > Generic**: An agent with a clear point of view and philosophy is more useful than a generic assistant
 - **Focused skills > Many tools**: 3-4 excellent skills beat 20 mediocre ones
 - **Validation built in**: Every skill should have a validation/sanity-check step
 - **File-based > Code-based**: Everything is markdown/YAML, no code needed to create an agent
