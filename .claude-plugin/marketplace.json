@@ -5,7 +5,7 @@
     "email": "hunter.h9898@gmail.com"
   },
   "metadata": {
-    "description": "Official Talon plugins for Claude Code \u2014 browser control, automation, and more"
+    "description": "Official Talon plugins for Claude Code — browser control, automation, and more"
   },
   "plugins": [
     {
@@ -48,7 +48,7 @@
       "name": "hub",
       "source": "./plugins/hub",
       "description": "Universal hub — connect any client via WebSocket. Full hook event forwarding, permission relay, bidirectional chat.",
-      "version": "1.2.2",
+      "version": "1.2.3",
       "author": {
         "name": "Talon"
       },
@@ -66,7 +66,7 @@
     {
       "name": "talon-computer-use",
       "source": "./plugins/computer-use",
-      "description": "Control macOS desktop \u2014 mouse, keyboard, screenshots, windows, displays, clipboard. Native Quartz automation via usecomputer CLI.",
+      "description": "Control macOS desktop — mouse, keyboard, screenshots, windows, displays, clipboard. Native Quartz automation via usecomputer CLI.",
       "version": "1.0.0",
       "author": {
         "name": "Talon"
@@ -85,7 +85,7 @@
     {
       "name": "talon-autoresearch",
       "source": "./plugins/autoresearch",
-      "description": "Autonomous experiment loop \u2014 iteratively edit, test, measure, keep/discard. Inspired by Karpathy's autoresearch.",
+      "description": "Autonomous experiment loop — iteratively edit, test, measure, keep/discard. Inspired by Karpathy's autoresearch.",
       "version": "0.1.0",
       "author": {
         "name": "Talon"

@@ -1,6 +1,6 @@
 {
   "hub": {
-    "command": "npx",
-    "args": ["-y", "-p", "@gettalon/channels-sdk", "hub"]
+    "command": "node",
+    "args": ["${pluginPath}/mcp-server/server.js"]
   }
 }
