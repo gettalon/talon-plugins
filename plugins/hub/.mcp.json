@@ -1,6 +1,6 @@
 {
   "hub": {
     "command": "node",
-    "args": ["${pluginPath}/mcp-server/bundle.js"]
+    "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/bundle.js"]
   }
 }
