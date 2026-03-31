@@ -48,7 +48,7 @@
       "name": "hub",
       "source": "./plugins/hub",
       "description": "Universal hub — connect any client via WebSocket. Full hook event forwarding, permission relay, bidirectional chat.",
-      "version": "1.2.4",
+      "version": "1.2.5",
       "author": {
         "name": "Talon"
       },
